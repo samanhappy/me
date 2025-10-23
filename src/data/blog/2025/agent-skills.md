@@ -4,7 +4,7 @@ pubDatetime: 2025-10-21T10:00:00.000Z
 title: Agent Skills 核心要义
 slug: agent-skills
 featured: false
-draft: false
+draft: true
 tags:
   - AI
 description: 介绍 Agent Skills 的定义、设计原则等。

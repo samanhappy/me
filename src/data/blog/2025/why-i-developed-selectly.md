@@ -4,7 +4,7 @@ pubDatetime: 2025-09-19T04:59:04.866Z
 modDatetime: 2025-09-19T04:59:04.866Z
 title: 为什么我要开发另一款网页划词插件 —— Selectly
 slug: why-i-developed-selectly
-featured: true
+featured: false
 draft: false
 tags:
   - AI
