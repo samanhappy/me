@@ -8,6 +8,20 @@ import IconFacebook from "@/assets/icons/IconFacebook.svg";
 import IconTelegram from "@/assets/icons/IconTelegram.svg";
 import IconPinterest from "@/assets/icons/IconPinterest.svg";
 import { SITE } from "@/config";
+import type { GiscusProps } from "@giscus/react";
+
+export const GISCUS: GiscusProps = {
+  repo: "samanhappy/me",
+  repoId: "R_kgDOQBbEWA",
+  category: "Announcements",
+  categoryId: "DIC_kwDOQBbEWM4Cw9Vu",
+  mapping: "pathname",
+  reactionsEnabled: "0",
+  emitMetadata: "0",
+  inputPosition: "bottom",
+  lang: "en",
+  loading: "lazy",
+};
 
 interface Social {
   name: string;
