@@ -16,6 +16,13 @@ import react from "@astrojs/react";
 // https://astro.build/config
 export default defineConfig({
   site: SITE.website,
+  i18n: {
+    locales: ["zh", "en"],
+    defaultLocale: "zh",
+    routing: {
+      prefixDefaultLocale: false,
+    },
+  },
   integrations: [sitemap({
     filter: page => SITE.showArchives || !page.endsWith("/archives"),
   }), react()],

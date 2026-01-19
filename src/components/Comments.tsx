@@ -1,15 +1,18 @@
 import Giscus, { type Theme } from "@giscus/react";
-import { GISCUS } from "@/constants";
+import { getGiscusConfig } from "@/constants";
+import type { Locale } from "@/i18n";
 import { useEffect, useState } from "react";
 
 interface CommentsProps {
   lightTheme?: Theme;
   darkTheme?: Theme;
+  locale: Locale;
 }
 
 export default function Comments({
   lightTheme = "light",
   darkTheme = "dark",
+  locale,
 }: CommentsProps) {
   const [theme, setTheme] = useState(() => {
     const currentTheme = localStorage.getItem("theme");
@@ -45,7 +48,10 @@ export default function Comments({
 
   return (
     <div className="mt-8">
-      <Giscus theme={theme === "light" ? lightTheme : darkTheme} {...GISCUS} />
+      <Giscus
+        theme={theme === "light" ? lightTheme : darkTheme}
+        {...getGiscusConfig(locale)}
+      />
     </div>
   );
 }

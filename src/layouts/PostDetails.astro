@@ -15,6 +15,8 @@ import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
 import IconChevronRight from "@/assets/icons/IconChevronRight.svg";
 import { SITE } from "@/config";
 import Comments from "@/components/Comments";
+import { getLocale, t } from "@/i18n";
+import { localizePath } from "@/utils/i18n";
 
 export interface Props {
   post: CollectionEntry<"blog">;
@@ -22,6 +24,7 @@ export interface Props {
 }
 
 const { post, posts } = Astro.props;
+const locale = getLocale(Astro.currentLocale);
 
 const {
   title,
@@ -49,7 +52,10 @@ if (typeof initOgImage === "string") {
 
 // Use dynamic OG image if enabled and no remote|local ogImage
 if (!ogImageUrl && SITE.dynamicOgImage) {
-  ogImageUrl = `${getPath(post.id, post.filePath)}/index.png`;
+  ogImageUrl = localizePath(
+    locale,
+    `${getPath(post.id, post.filePath)}/index.png`
+  );
 }
 
 // Resolve OG image URL (or fallback to SITE.ogImage / default `og.png`)
@@ -130,7 +136,7 @@ const nextPost =
 
     <ShareLinks />
 
-    <Comments client:only="react" />
+    <Comments client:only="react" locale={locale} />
 
     <hr class="my-6 border-dashed" />
 
@@ -139,12 +145,12 @@ const nextPost =
       {
         prevPost && (
           <a
-            href={getPath(prevPost.id, prevPost.filePath)}
+            href={localizePath(locale, getPath(prevPost.id, prevPost.filePath))}
             class="flex w-full gap-1 hover:opacity-75"
           >
             <IconChevronLeft class="inline-block flex-none rtl:rotate-180" />
             <div>
-              <span>Previous Post</span>
+              <span>{t(locale, "post.previous")}</span>
               <div class="text-sm text-accent/85">{prevPost.title}</div>
             </div>
           </a>
@@ -153,11 +159,11 @@ const nextPost =
       {
         nextPost && (
           <a
-            href={getPath(nextPost.id, nextPost.filePath)}
+            href={localizePath(locale, getPath(nextPost.id, nextPost.filePath))}
             class="flex w-full justify-end gap-1 text-end hover:opacity-75 sm:col-start-2"
           >
             <div>
-              <span>Next Post</span>
+              <span>{t(locale, "post.next")}</span>
               <div class="text-sm text-accent/85">{nextPost.title}</div>
             </div>
             <IconChevronRight class="inline-block flex-none rtl:rotate-180" />
@@ -236,7 +242,8 @@ const nextPost =
   /** Attaches copy buttons to code blocks in the document,
    * allowing users to copy code easily. */
   function attachCopyButtons() {
-    const copyButtonLabel = "Copy";
+    const copyButtonLabel = ${JSON.stringify(t(locale, "post.copy"))};
+    const copiedLabel = ${JSON.stringify(t(locale, "post.copied"))};
     const codeBlocks = Array.from(document.querySelectorAll("pre"));
 
     for (const codeBlock of codeBlocks) {
@@ -275,7 +282,7 @@ const nextPost =
       await navigator.clipboard.writeText(text ?? "");
 
       // visual feedback that task is completed
-      button.innerText = "Copied";
+      button.innerText = copiedLabel;
 
       setTimeout(() => {
         button.innerText = copyButtonLabel;
