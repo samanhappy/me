@@ -3,7 +3,6 @@ author: 青扬
 pubDatetime: 2025-09-19T04:59:04.866Z
 modDatetime: 2025-09-19T04:59:04.866Z
 title: 为什么我要开发另一款网页划词插件 —— Selectly
-slug: why-i-developed-selectly
 featured: false
 draft: false
 tags:
@@ -52,14 +51,11 @@ Selectly 的定位，是一款基于“网页划词 + 人工智能”的可扩�
 
 ![Selectly 功能定制](@/assets/images/function_config.png)
 
-至于价格，Selectly 的 **基础功能完全免费**：翻译、解释、润色、复制、搜索、跳转、分享、收藏等。
-需要会员的部分是 **对话功能** 和 **自定义功能**。
+至于价格，如果你使用自己的模型 API Key，并且不需要云端同步数据，那么 Selectly 完全免费，包括翻译、解释、润色、复制、搜索、跳转、分享、收藏、对话等。对于没有自己模型 API Key 的用户，Selectly 也集成了付费模型服务，按量计费，价格透明且低廉。
 
-需要说明的是，Selectly **本身不提供语言模型**。用户需要配置相应供应商的 API Key。目前支持 OpenAI、Anthropic、OpenRouter、SiliconFlow、Azure OpenAI、Ollama，以及任何兼容 OpenAI 接口标准的服务商。
+目前 Selectly 支持 OpenAI、Anthropic、OpenRouter、SiliconFlow、Azure OpenAI、Ollama，以及任何兼容 OpenAI 接口标准的服务商。
 
 ![Selectly 支持的模型供应商](@/assets/images/llm_config.png)
-
-为什么不内置模型服务？因为现有的模型供应商已经很成熟，Selectly 不想成为赚差价的“二道贩子”。以 OpenRouter 为例，它提供了数百种模型，用户可以自由选择、按量付费。比如翻译、润色这类轻量需求，用 gpt-4o-mini 这样的基础模型就足够：便宜、快速、效果也好。
 
 ## 展望
 

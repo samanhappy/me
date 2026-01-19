@@ -2,6 +2,8 @@
 import { ClientRouter } from "astro:transitions";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
 import { SITE } from "@/config";
+import { getLocale, t } from "@/i18n";
+import { localizePath } from "@/utils/i18n";
 import "@/styles/global.css";
 
 export interface Props {
@@ -20,13 +22,17 @@ const {
   title = SITE.title,
   author = SITE.author,
   profile = SITE.profile,
-  description = SITE.desc,
+  description,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
   canonicalURL = new URL(Astro.url.pathname, Astro.url),
   pubDatetime,
   modDatetime,
   scrollSmooth = false,
 } = Astro.props;
+
+const locale = getLocale(Astro.currentLocale);
+const defaultDescription = t(locale, "site.description");
+const metaDescription = description ?? defaultDescription;
 
 const socialImageURL = new URL(ogImage, Astro.url);
 
@@ -48,11 +54,7 @@ const structuredData = {
 ---
 
 <!doctype html>
-<html
-  dir={SITE.dir}
-  lang=`${SITE.lang ?? "en"}`
-  class={`${scrollSmooth && "scroll-smooth"}`}
->
+<html dir={SITE.dir} lang={locale} class={`${scrollSmooth && "scroll-smooth"}`}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
@@ -63,13 +65,13 @@ const structuredData = {
     <!-- General Meta Tags -->
     <title>{title}</title>
     <meta name="title" content={title} />
-    <meta name="description" content={description} />
+    <meta name="description" content={metaDescription} />
     <meta name="author" content={author} />
     <link rel="sitemap" href="/sitemap-index.xml" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:description" content={metaDescription} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:image" content={socialImageURL} />
 
@@ -95,7 +97,7 @@ const structuredData = {
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={canonicalURL} />
     <meta property="twitter:title" content={title} />
-    <meta property="twitter:description" content={description} />
+    <meta property="twitter:description" content={metaDescription} />
     <meta property="twitter:image" content={socialImageURL} />
 
     <!-- Google JSON-LD Structured data -->
@@ -111,7 +113,7 @@ const structuredData = {
       rel="alternate"
       type="application/rss+xml"
       title={SITE.title}
-      href={new URL("rss.xml", Astro.site)}
+      href={new URL(localizePath(locale, "rss.xml"), Astro.site)}
     />
 
     <meta name="theme-color" content="" />

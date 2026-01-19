@@ -1,6 +1,8 @@
 ---
 import Breadcrumb from "@/components/Breadcrumb.astro";
 import { SITE } from "@/config";
+import { getLocale } from "@/i18n";
+import { localizePath } from "@/utils/i18n";
 
 interface StringTitleProp {
   pageTitle: string;
@@ -17,7 +19,11 @@ export type Props = StringTitleProp | ArrayTitleProp;
 
 const { props } = Astro;
 
-const backUrl = SITE.showBackButton ? Astro.url.pathname : "/";
+const locale = getLocale(Astro.currentLocale);
+
+const backUrl = SITE.showBackButton
+  ? Astro.url.pathname
+  : localizePath(locale, "");
 ---
 
 <Breadcrumb />

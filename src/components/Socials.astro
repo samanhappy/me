@@ -1,5 +1,7 @@
 ---
 import { SOCIALS } from "@/constants";
+import { SITE } from "@/config";
+import { getLocale, t } from "@/i18n";
 import LinkButton from "./LinkButton.astro";
 
 export interface Props {
@@ -7,19 +9,25 @@ export interface Props {
 }
 
 const { centered = false } = Astro.props;
+const locale = getLocale(Astro.currentLocale);
 ---
 
 <div class:list={["flex-wrap justify-center gap-1", { flex: centered }]}>
   {
-    SOCIALS.map(social => (
-      <LinkButton
-        href={social.href}
-        class="p-2 hover:rotate-6 sm:p-1"
-        title={social.linkTitle}
-      >
-        <social.icon class="inline-block size-6 scale-125 fill-transparent stroke-current stroke-2 opacity-90 group-hover:fill-transparent sm:scale-110" />
-        <span class="sr-only">{social.linkTitle}</span>
-      </LinkButton>
-    ))
+    SOCIALS.map(social => {
+      const linkTitle = t(locale, `social.${social.id}`, {
+        site: SITE.title,
+      });
+      return (
+        <LinkButton
+          href={social.href}
+          class="p-2 hover:rotate-6 sm:p-1"
+          title={linkTitle}
+        >
+          <social.icon class="inline-block size-6 scale-125 fill-transparent stroke-current stroke-2 opacity-90 group-hover:fill-transparent sm:scale-110" />
+          <span class="sr-only">{linkTitle}</span>
+        </LinkButton>
+      );
+    })
   }
 </div>

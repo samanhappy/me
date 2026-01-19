@@ -9,12 +9,13 @@ import Card from "@/components/Card.astro";
 import Pagination from "@/components/Pagination.astro";
 import getSortedPosts from "@/utils/getSortedPosts";
 import { SITE } from "@/config";
-import { defaultLocale, getLocale, t } from "@/i18n";
+import { getLocale, t } from "@/i18n";
 import { filterPostsByLocale } from "@/utils/i18n";
 
 export const getStaticPaths = (async ({ paginate }) => {
+  const localeForPaths = "zh" as const;
   const posts = await getCollection("blog", ({ data }) => !data.draft);
-  const localePosts = filterPostsByLocale(posts, defaultLocale);
+  const localePosts = filterPostsByLocale(posts, localeForPaths);
   return paginate(getSortedPosts(localePosts), { pageSize: SITE.postPerPage });
 }) satisfies GetStaticPaths;
 

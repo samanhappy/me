@@ -10,12 +10,13 @@ import Pagination from "@/components/Pagination.astro";
 import getUniqueTags from "@/utils/getUniqueTags";
 import getPostsByTag from "@/utils/getPostsByTag";
 import { SITE } from "@/config";
-import { defaultLocale, getLocale, t } from "@/i18n";
+import { getLocale, t } from "@/i18n";
 import { filterPostsByLocale } from "@/utils/i18n";
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  const localeForPaths = "zh" as const;
   const posts = await getCollection("blog");
-  const localePosts = filterPostsByLocale(posts, defaultLocale);
+  const localePosts = filterPostsByLocale(posts, localeForPaths);
   const tags = getUniqueTags(localePosts);
 
   return tags.flatMap(({ tag, tagName }) => {
