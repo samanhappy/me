@@ -17,8 +17,8 @@ import react from "@astrojs/react";
 export default defineConfig({
   site: SITE.website,
   i18n: {
-    locales: ["zh", "en"],
-    defaultLocale: "zh",
+    locales: ["en", "zh"],
+    defaultLocale: "en",
     routing: {
       prefixDefaultLocale: false,
     },

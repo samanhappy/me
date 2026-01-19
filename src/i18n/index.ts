@@ -1,7 +1,7 @@
-export const locales = ["zh", "en"] as const;
+export const locales = ["en", "zh"] as const;
 export type Locale = (typeof locales)[number];
 
-export const defaultLocale: Locale = "zh";
+export const defaultLocale: Locale = "en";
 
 const messages = {
   zh: {
@@ -15,6 +15,7 @@ const messages = {
       archives: "归档",
       search: "搜索",
       toggleTheme: "切换明暗模式",
+      switchLanguage: "English",
     },
     home: {
       featured: "精选",
@@ -116,6 +117,7 @@ const messages = {
       archives: "Archives",
       search: "Search",
       toggleTheme: "Toggle light & dark",
+      switchLanguage: "中文",
     },
     home: {
       featured: "Featured",
@@ -217,7 +219,7 @@ const formatMessage = (message: string, vars?: FormatVars) =>
   );
 
 export const getLocale = (locale?: string): Locale =>
-  locale === "en" ? "en" : defaultLocale;
+  locale === "zh" ? "zh" : defaultLocale;
 
 export const t = (locale: Locale, key: string, vars?: FormatVars) => {
   const parts = key.split(".");

@@ -9,12 +9,13 @@ import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
 import LinkButton from "./LinkButton.astro";
 import { SITE } from "@/config";
 import { getLocale, t } from "@/i18n";
-import { localizePath } from "@/utils/i18n";
+import { localizePath, getLanguageSwitchUrl } from "@/utils/i18n";
 
 const { pathname } = Astro.url;
 const locale = getLocale(Astro.currentLocale);
 const openMenuLabel = t(locale, "nav.openMenu");
 const closeMenuLabel = t(locale, "nav.closeMenu");
+const languageSwitchUrl = getLanguageSwitchUrl(locale, pathname);
 
 // Remove trailing slash from current pathname if exists
 const currentPath =
@@ -150,6 +151,15 @@ const isActive = (path: string) => {
               </li>
             )
           }
+          <li class="col-span-1 flex items-center justify-center">
+            <a
+              href={languageSwitchUrl}
+              class="focus-outline flex p-3 sm:p-1 font-medium hover:text-accent"
+              title={t(locale, "nav.switchLanguage")}
+            >
+              {t(locale, "nav.switchLanguage")}
+            </a>
+          </li>
         </ul>
       </nav>
     </div>
