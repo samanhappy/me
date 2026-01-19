@@ -7,15 +7,68 @@ import IconArchive from "@/assets/icons/IconArchive.svg";
 import IconSunHigh from "@/assets/icons/IconSunHigh.svg";
 import IconMenuDeep from "@/assets/icons/IconMenuDeep.svg";
 import LinkButton from "./LinkButton.astro";
+import { getCollection } from "astro:content";
 import { SITE } from "@/config";
 import { getLocale, t } from "@/i18n";
-import { localizePath, getLanguageSwitchUrl } from "@/utils/i18n";
+import { getPath } from "@/utils/getPath";
+import {
+  filterPostsByLocale,
+  getAlternateLocale,
+  localizePath,
+  getLanguageSwitchUrl,
+} from "@/utils/i18n";
 
 const { pathname } = Astro.url;
 const locale = getLocale(Astro.currentLocale);
 const openMenuLabel = t(locale, "nav.openMenu");
 const closeMenuLabel = t(locale, "nav.closeMenu");
-const languageSwitchUrl = getLanguageSwitchUrl(locale, pathname);
+
+// For most pages, switching language is just switching the locale prefix.
+// For post detail pages, slugs differ between languages (e.g. `...selectlyen` -> `...selectlyzh`).
+// So we try to locate the translated post by paired filenames: `*.en.md` <-> `*.zh.md`.
+const languageSwitchUrl = await (async () => {
+  const fallback = getLanguageSwitchUrl(locale, pathname);
+  const alternateLocale = getAlternateLocale(locale);
+
+  // Normalize path: remove trailing slash, leading slash, and any locale prefix.
+  const trimmedPathname =
+    pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
+  let path = trimmedPathname.replace(/^\/+/, "");
+  for (const loc of ["en", "zh"] as const) {
+    if (path.startsWith(`${loc}/`)) {
+      path = path.slice(loc.length + 1);
+      break;
+    }
+    if (path === loc) {
+      path = "";
+      break;
+    }
+  }
+
+  const segments = path.split("/").filter(Boolean);
+  const isPostDetailsPage = segments[0] === "posts" && segments.length >= 3;
+  if (!isPostDetailsPage) return fallback;
+
+  const posts = await getCollection("blog", ({ data }) => !data.draft);
+  const localePosts = filterPostsByLocale(posts, locale);
+
+  // Find the current post by comparing its generated path to the current (de-localized) URL.
+  const currentPath = `/${path}`;
+  const currentPost = localePosts.find(
+    p => getPath(p.id, p.filePath).replace(/\/+$/, "") === currentPath
+  );
+  if (!currentPost?.filePath) return fallback;
+
+  const baseFilePath = currentPost.filePath.replace(/\.(zh|en)\.md$/, "");
+  const translatedFilePath = `${baseFilePath}.${alternateLocale}.md`;
+  const translatedPost = posts.find(p => p.filePath === translatedFilePath);
+  if (!translatedPost) return fallback;
+
+  return localizePath(
+    alternateLocale,
+    getPath(translatedPost.id, translatedPost.filePath)
+  );
+})();
 
 // Remove trailing slash from current pathname if exists
 const currentPath =
