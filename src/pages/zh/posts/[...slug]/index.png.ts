@@ -5,9 +5,8 @@ import { generateOgImageForPost } from "@/utils/generateOgImages";
 import { SITE } from "@/config";
 import { filterPostsByLocale } from "@/utils/i18n";
 
-const localeForPaths = "zh" as const;
-
 export async function getStaticPaths() {
+  const localeForPaths = "zh" as const;
   if (!SITE.dynamicOgImage) {
     return [];
   }
