@@ -22,7 +22,7 @@ const backUrl = SITE.showBackButton ? `${Astro.url.pathname}` : "/";
   <Footer />
 </Layout>
 
-<script is:inline>
+<script>
   function initSearch() {
     const pageFindSearch: HTMLElement | null =
       document.querySelector("#pagefind-search");

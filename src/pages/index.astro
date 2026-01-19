@@ -67,7 +67,7 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
   <Footer />
 </Layout>
 
-<script is:inline>
+<script>
   document.addEventListener("astro:page-load", () => {
     const indexLayout = (document.querySelector("#main-content") as HTMLElement)
       ?.dataset?.layout;

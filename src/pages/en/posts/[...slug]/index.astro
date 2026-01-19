@@ -9,9 +9,8 @@ export interface Props {
   post: CollectionEntry<"blog">;
 }
 
-const localeForPaths = "en" as const;
-
 export async function getStaticPaths() {
+  const localeForPaths = "en" as const;
   const posts = await getCollection("blog", ({ data }) => !data.draft);
   const localePosts = filterPostsByLocale(posts, localeForPaths);
   const postResult = localePosts.map(post => ({
@@ -25,7 +24,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 
 const posts = await getCollection("blog");
-const sortedPosts = getSortedPosts(filterPostsByLocale(posts, localeForPaths));
+const sortedPosts = getSortedPosts(filterPostsByLocale(posts, "en"));
 ---
 
 <PostDetails post={post} posts={sortedPosts} />

@@ -12,9 +12,8 @@ import { SITE } from "@/config";
 import { getLocale, t } from "@/i18n";
 import { filterPostsByLocale } from "@/utils/i18n";
 
-const localeForPaths = "en" as const;
-
 export const getStaticPaths = (async ({ paginate }) => {
+  const localeForPaths = "en" as const;
   const posts = await getCollection("blog", ({ data }) => !data.draft);
   const localePosts = filterPostsByLocale(posts, localeForPaths);
   return paginate(getSortedPosts(localePosts), { pageSize: SITE.postPerPage });
