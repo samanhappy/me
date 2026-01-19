@@ -12,6 +12,7 @@ description: 介绍 Agent Skills 的定义、设计原则等。
 ## 定义
 
 简单来说，Agent Skills 只是一组 Skill 目录，每个 Skill 目录下包含一组文件：
+
 - SKILL.md：核心定义
 - 引用指令
 - 可执行代码。
@@ -27,4 +28,5 @@ description: 介绍 Agent Skills 的定义、设计原则等。
 和 MCP 相比，Skills 更简单，只是文件而已。
 
 ## 参考
+
 - [Equipping agents for the real world with Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)

@@ -12,6 +12,7 @@ description: A brief introduction to what Agent Skills are and how to design the
 ## Definition
 
 In short, Agent Skills are just a set of skill directories. Each skill directory contains a group of files:
+
 - SKILL.md: the core definition
 - referenced instructions
 - executable code
@@ -27,4 +28,5 @@ Progressive loading is the core design principle of Agent Skills.
 Compared with MCP, Skills are simpler — they are just files.
 
 ## References
+
 - [Equipping agents for the real world with Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)

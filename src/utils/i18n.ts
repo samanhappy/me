@@ -13,12 +13,15 @@ export const localizePath = (locale: Locale, path: string) => {
 export const getAlternateLocale = (locale: Locale): Locale =>
   locale === "en" ? "zh" : "en";
 
-export const getLanguageSwitchUrl = (currentLocale: Locale, pathname: string) => {
+export const getLanguageSwitchUrl = (
+  currentLocale: Locale,
+  pathname: string
+) => {
   const alternateLocale = getAlternateLocale(currentLocale);
-  
+
   // Remove leading slash and current locale prefix if present
   let path = pathname.replace(/^\/+/, "");
-  
+
   // Remove current locale prefix from path
   for (const loc of locales) {
     if (path.startsWith(`${loc}/`)) {
@@ -29,7 +32,7 @@ export const getLanguageSwitchUrl = (currentLocale: Locale, pathname: string) =>
       break;
     }
   }
-  
+
   return localizePath(alternateLocale, path);
 };
 

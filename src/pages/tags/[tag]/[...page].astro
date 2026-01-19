@@ -35,7 +35,9 @@ const { page, tagName } = Astro.props;
 const locale = getLocale(Astro.currentLocale);
 ---
 
-<Layout title={`${t(locale, "tags.tagTitle", { tag: tagName })} | ${SITE.title}`}>
+<Layout
+  title={`${t(locale, "tags.tagTitle", { tag: tagName })} | ${SITE.title}`}
+>
   <Header />
   <Main
     pageTitle={[t(locale, "tags.tagTitle", { tag: "" }).trim(), `${tagName}`]}

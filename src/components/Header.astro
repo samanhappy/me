@@ -31,7 +31,9 @@ const languageSwitchUrl = await (async () => {
 
   // Normalize path: remove trailing slash, leading slash, and any locale prefix.
   const trimmedPathname =
-    pathname.endsWith("/") && pathname !== "/" ? pathname.slice(0, -1) : pathname;
+    pathname.endsWith("/") && pathname !== "/"
+      ? pathname.slice(0, -1)
+      : pathname;
   let path = trimmedPathname.replace(/^\/+/, "");
   for (const loc of ["en", "zh"] as const) {
     if (path.startsWith(`${loc}/`)) {
@@ -206,7 +208,7 @@ const isActive = (path: string) => {
           <li class="col-span-1 flex items-center justify-center">
             <a
               href={languageSwitchUrl}
-              class="focus-outline flex p-3 sm:p-1 font-medium hover:text-accent"
+              class="focus-outline flex p-3 font-medium hover:text-accent sm:p-1"
               title={t(locale, "nav.switchLanguage")}
             >
               {t(locale, "nav.switchLanguage")}
