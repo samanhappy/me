@@ -68,11 +68,15 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
 </Layout>
 
 <script>
+  import { getLocale } from "@/i18n";
+  import { localizePath } from "@/utils/i18n";
+
   document.addEventListener("astro:page-load", () => {
     const indexLayout = (document.querySelector("#main-content") as HTMLElement)
       ?.dataset?.layout;
     if (indexLayout) {
-      const homeUrl = `${localizePath(locale, "")}`;
+      const locale = getLocale(document.documentElement.lang);
+      const homeUrl = localizePath(locale, "");
       sessionStorage.setItem("backUrl", homeUrl);
     }
   });

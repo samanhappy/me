@@ -23,6 +23,8 @@ const backUrl = SITE.showBackButton ? `${Astro.url.pathname}` : "/";
 </Layout>
 
 <script>
+  import { getLocale, t } from "@/i18n";
+
   function initSearch() {
     const pageFindSearch: HTMLElement | null =
       document.querySelector("#pagefind-search");
@@ -39,10 +41,11 @@ const backUrl = SITE.showBackButton ? `${Astro.url.pathname}` : "/";
 
       // Display warning inn dev mode
       if (import.meta.env.DEV) {
+        const locale = getLocale(document.documentElement.lang);
         const devWarningHtml = `
   <div class="bg-muted/75 rounded p-4 space-y-4 mb-4">
-    <p><strong>${`${t(locale, "search.devWarningTitle")}`}</strong> ${`${t(locale, "search.devWarningBody")}`}</p>
-    <code class="block bg-black text-white px-2 py-1 rounded">${`${t(locale, "search.buildCommand")}`}</code>
+    <p><strong>${t(locale, "search.devWarningTitle")}</strong> ${t(locale, "search.devWarningBody")}</p>
+    <code class="block bg-black text-white px-2 py-1 rounded">${t(locale, "search.buildCommand")}</code>
   </div>
 `;
         pageFindSearch.innerHTML = devWarningHtml;
