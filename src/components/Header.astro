@@ -21,7 +21,6 @@ import {
 const { pathname } = Astro.url;
 const locale = getLocale(Astro.currentLocale);
 const openMenuLabel = t(locale, "nav.openMenu");
-const closeMenuLabel = t(locale, "nav.closeMenu");
 
 // For most pages, switching language is just switching the locale prefix.
 // For post detail pages, slugs differ between languages (e.g. `...selectlyen` -> `...selectlyzh`).
@@ -226,8 +225,8 @@ const isActive = (path: string) => {
     const menuItems = document.querySelector("#menu-items");
     const menuIcon = document.querySelector("#menu-icon");
     const closeIcon = document.querySelector("#close-icon");
-    const openMenuLabel = ${JSON.stringify(openMenuLabel)};
-    const closeMenuLabel = ${JSON.stringify(closeMenuLabel)};
+    const openMenuLabel = `${openMenuLabel}`;
+    const closeMenuLabel = `${t(locale, "nav.closeMenu")}`;
 
     if (!menuBtn || !menuItems || !menuIcon || !closeIcon) return;
 

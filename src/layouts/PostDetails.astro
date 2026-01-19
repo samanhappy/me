@@ -242,8 +242,8 @@ const nextPost =
   /** Attaches copy buttons to code blocks in the document,
    * allowing users to copy code easily. */
   function attachCopyButtons() {
-    const copyButtonLabel = ${JSON.stringify(t(locale, "post.copy"))};
-    const copiedLabel = ${JSON.stringify(t(locale, "post.copied"))};
+    const copyButtonLabel = `${t(locale, "post.copy")}`;
+    const copiedLabel = `${t(locale, "post.copied")}`;
     const codeBlocks = Array.from(document.querySelectorAll("pre"));
 
     for (const codeBlock of codeBlocks) {

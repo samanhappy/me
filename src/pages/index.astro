@@ -73,7 +73,7 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
     const indexLayout = (document.querySelector("#main-content") as HTMLElement)
       ?.dataset?.layout;
     if (indexLayout) {
-      const homeUrl = ${JSON.stringify(localizePath(locale, ""))};
+      const homeUrl = `${localizePath(locale, "")}`;
       sessionStorage.setItem("backUrl", homeUrl);
     }
   });
