@@ -59,8 +59,8 @@ In traditional development, TDD helps you clarify requirements and ensure correc
 
 My workflow looks roughly like this:
 
-1. I write the tests (defining "what correct looks like")
-2. AI writes the implementation (solving "how to get there")
+1. I write the requirements (defining "what correct looks like")
+2. AI writes the implementation and tests (solving "how to get there")
 3. Tests pass → I do a code review
 4. Review passes → merge to main
 
