@@ -23,6 +23,26 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
 <Layout>
   <Header />
   <main id="main-content" data-layout="index">
+    <section id="hero" class="py-14 text-center">
+      <h1 class="text-4xl font-bold">
+        Hi, I'm Saman 👋
+      </h1>
+      <p class="mt-4 text-lg opacity-70">
+        A software engineer with 15+ years of experience, building AI infrastructure and open-source tools. Creator of <a href="https://github.com/samanhappy/mcphub" class="hover:text-accent underline underline-offset-4">MCPHub</a> (2k+ ⭐) — a unified hub for orchestrating MCP servers.
+      </p>
+      <div class="mt-6 flex flex-wrap justify-center gap-4">
+        <LinkButton href="https://github.com/samanhappy">
+          View Projects <IconArrowRight class="inline-block" />
+        </LinkButton>
+        <LinkButton href="/about/">
+          About Me <IconArrowRight class="inline-block" />
+        </LinkButton>
+      </div>
+      <p class="mt-6 text-sm opacity-50">
+        TypeScript · AI Agents · MCP · Open Source
+      </p>
+    </section>
+    <Hr />
     {
       featuredPosts.length > 0 && (
         <>

@@ -1,9 +1,9 @@
 export const SITE = {
   website: "https://samanhappy.com/", // replace this with your deployed domain
-  author: "samanhappy",
+  author: "Saman",
   profile: "https://samanhappy.com/",
-  desc: "个人博客。",
-  title: "samanhappy",
+  desc: "Software engineer crafting AI infrastructure and open-source tools. Creator of MCPHub.",
+  title: "Saman",
   ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,
   postPerIndex: 4,

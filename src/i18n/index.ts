@@ -103,7 +103,7 @@ const messages = {
       "十二月",
     ],
     site: {
-      description: "个人博客。",
+      description: "专注 AI 基础设施与开源工具的全栈工程师。MCPHub 作者。",
     },
   },
   en: {
@@ -206,7 +206,7 @@ const messages = {
       "December",
     ],
     site: {
-      description: "A personal blog.",
+      description: "Software engineer crafting AI infrastructure and open-source tools. Creator of MCPHub.",
     },
   },
 } as const;
