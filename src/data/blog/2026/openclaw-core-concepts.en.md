@@ -22,7 +22,7 @@ This article breaks down OpenClaw's core concepts to help you build a clear ment
 
 OpenClaw follows an intuitive three-layer design:
 
-![OpenClaw Architecture Overview](/assets/openclaw-core-concepts/architecture-overview.png)
+![OpenClaw Architecture Overview](@/assets/images/openclaw-core-concepts/architecture-overview.png)
 
 **Channel Layer** — the system's "senses." It interfaces with messaging platforms (WhatsApp, Telegram, Slack, Discord, iMessage, Desktop App, etc.) and normalizes their diverse protocols into a unified internal format. Think of it as a translator: regardless of what platform a user sends from, it all becomes the same language internally.
 
@@ -71,7 +71,7 @@ The system uses **Binding Rules** to determine "which Agent should handle messag
 
 ### How They Work Together
 
-![Agent-Session-Channel Relationship](/assets/openclaw-core-concepts/agent-session-channel.png)
+![Agent-Session-Channel Relationship](@/assets/images/openclaw-core-concepts/agent-session-channel.png)
 
 Putting it all together:
 
@@ -88,7 +88,7 @@ One Agent can serve multiple users across multiple Channels simultaneously, with
 
 Session is one of the most important concepts to understand deeply, because many "weird behaviors" in practice trace back to it.
 
-![Session Lifecycle](/assets/openclaw-core-concepts/session-lifecycle.png)
+![Session Lifecycle](@/assets/images/openclaw-core-concepts/session-lifecycle.png)
 
 ### Lifecycle
 
