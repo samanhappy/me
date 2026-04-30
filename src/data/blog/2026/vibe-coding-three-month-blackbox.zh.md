@@ -3,7 +3,7 @@ author: samanhappy
 pubDatetime: 2026-04-30T14:00:00.000Z
 modDatetime: 2026-04-30T14:00:00.000Z
 title: "Vibe Coding 的三个月黑箱：为什么我选择 AI Coding + TDD"
-featured: true
+featured: false
 draft: false
 tags:
   - AI Coding

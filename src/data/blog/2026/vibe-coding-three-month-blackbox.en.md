@@ -3,7 +3,7 @@ author: samanhappy
 pubDatetime: 2026-04-30T14:00:00.000Z
 modDatetime: 2026-04-30T14:00:00.000Z
 title: "The Three-Month Black Box of Vibe Coding: Why I Chose AI Coding + TDD"
-featured: true
+featured: false
 draft: false
 tags:
   - AI Coding

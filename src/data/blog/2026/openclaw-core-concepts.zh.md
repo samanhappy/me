@@ -3,7 +3,7 @@ author: 青扬
 pubDatetime: 2026-04-30T14:30:00.000Z
 modDatetime: 2026-04-30T14:30:00.000Z
 title: "OpenClaw 核心概念解析：Agent、Session、Channel 如何协同工作"
-featured: true
+featured: false
 draft: false
 tags:
   - OpenClaw

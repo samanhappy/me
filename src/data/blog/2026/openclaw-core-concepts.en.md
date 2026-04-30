@@ -3,7 +3,7 @@ author: samanhappy
 pubDatetime: 2026-04-30T14:30:00.000Z
 modDatetime: 2026-04-30T14:30:00.000Z
 title: "OpenClaw Core Concepts: How Agent, Session, and Channel Work Together"
-featured: true
+featured: false
 draft: false
 tags:
   - OpenClaw
