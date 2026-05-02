@@ -49,7 +49,7 @@ The Agent is OpenClaw's core component that executes the AI operation loop. Its 
 - **Tool execution**: calling the appropriate tools based on model decisions
 - **State persistence**: saving conversation history and learned memories
 
-A single Gateway can run multiple Agents, each with its own identity (MOD), toolset (Skills), and workspace. For example, you could run a "work assistant" Agent and a "personal concierge" Agent on the same Gateway, each operating independently.
+A single Gateway can run multiple Agents, each with its own identity file (SOUL.md), toolset (Skills), and workspace. For example, you could run a "work assistant" Agent and a "personal concierge" Agent on the same Gateway, each operating independently.
 
 ### Session: The Conversation Context Container
 
@@ -102,11 +102,11 @@ A reset clears conversation history and the Agent starts fresh — but this does
 
 ### Isolation Levels
 
-Session isolation can be configured at different granularities:
+Session isolation is configured via `dmScope` at different granularities:
 
-- **per-peer**: one Session per user, shared across Channels
-- **per-channel-peer** (recommended): one Session per Channel + user combination
-- **per-account-channel-peer**: finest granularity, isolating even different accounts of the same user on the same platform
+- **main** (default): all DMs across all channels share a single Session
+- **per-peer**: one isolated Session per user, shared across Channels
+- **per-channel-peer** (recommended): one isolated Session per Channel + user combination, so the same user has separate conversations on different platforms
 
 ### Lane Queue: Serial Guarantee
 
@@ -128,22 +128,20 @@ Skills are OpenClaw's capability extension modules. Each Skill is essentially a 
 
 What makes Skills powerful:
 
-- Hot-loadable — no restart required
-- Agents can create new Skills themselves
-- Community can share and reuse them
+- Hot-loadable — no Gateway restart required
+- Community can share and reuse them through registries like ClawHub
 
 ### Memory: Persistent Cross-Session Knowledge
 
-Memory solves the "Agent loses everything when Session resets" problem. It's file-based (Markdown) persistent storage, divided into:
+Memory solves the "Agent loses everything when Session resets" problem. Its core file is **MEMORY.md**, stored in the Agent workspace, holding durable facts and preferences across sessions (e.g., "user prefers concise responses").
 
-- **Global Memory**: facts and preferences across all sessions (e.g., "user prefers concise responses")
-- **Session History**: conversation records from the current session
+An elegant aspect of Memory is that it's human-auditable — you can open MEMORY.md directly to see what the Agent remembers, and even edit it manually. Retrieval uses hybrid vector + keyword search to efficiently find relevant memories.
 
-An elegant aspect of Memory is that it's human-auditable — you can open the files directly to see what the Agent remembers, and even edit them manually. Retrieval uses hybrid vector + keyword search to efficiently find relevant memories.
+> **Note the distinction**: Memory is persistent knowledge (MEMORY.md); Session History is the current conversation transcript — they are different things. A Session reset clears the transcript, but MEMORY.md content is preserved.
 
-### MOD: Personality Definition
+### SOUL.md: Personality Definition
 
-MOD defines an Agent's personality, tone, and behavior patterns. The same Agent can switch between different MODs — for instance, a strict professional mode for work and a casual mode for everyday chat.
+SOUL.md is the core file defining an Agent's persona and behavioral philosophy. OpenClaw distinguishes "what to do" (AGENTS.md) from "who to be" (SOUL.md) — SOUL.md is injected into the system prompt at the start of every session, ensuring the Agent maintains a consistent communication style, values, and behavioral boundaries. It's written in plain Markdown, can be directly edited, and the community has even spawned open-source projects like ClawSouls for sharing and installing pre-configured personas.
 
 ### Bindings: Routing Rules
 
@@ -162,6 +160,6 @@ Let's recap OpenClaw's core architecture:
 - **Agent** is the execution unit running the ReAct loop
 - **Session** is the context container providing isolation and serial guarantees
 - **Channel** is the adapter connecting various messaging platforms
-- **Skills, Memory, MOD, and Bindings** solve capability extension, persistent memory, personality definition, and message routing respectively
+- **Skills, Memory, SOUL.md, and Bindings** solve capability extension, persistent memory, personality definition, and message routing respectively
 
 Understanding these concepts and their relationships makes using and debugging OpenClaw significantly smoother. If you haven't installed it yet, check out my earlier installation guide; if you're already using it, try observing the system's behavior through the lens of this article — you'll have plenty of "aha" moments.
