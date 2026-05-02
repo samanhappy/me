@@ -67,7 +67,7 @@ A Channel is a messaging platform adapter. Each Channel corresponds to a specifi
 - Converting them into OpenClaw's internal standard format
 - Transforming Agent responses back into platform-specific format for delivery
 
-The system uses **Binding Rules** to determine "which Agent should handle messages from which Channel and which user." These are deterministic routing rules that can match on channel type, account, user ID, guild, roles, and more.
+The system uses **Bindings** to determine "which Agent should handle messages from which Channel and which user." These are deterministic routing rules that can match on channel type, account, user ID, guild, roles, and more.
 
 ### How They Work Together
 
@@ -77,7 +77,7 @@ Putting it all together:
 
 1. A user sends a message on some platform (say, Telegram)
 2. The corresponding Channel receives it, normalizes it, and forwards it to the Gateway
-3. The Gateway uses Binding Rules to find the right Agent for this message
+3. The The Gateway uses Bindings to find the right Agent for this message
 4. The Agent looks up or creates the appropriate Session (based on channel + userId)
 5. The Agent executes the ReAct loop within that Session's context
 6. The result flows back through Gateway → Channel to the user
@@ -108,11 +108,20 @@ Session isolation is configured via `dmScope` at different granularities:
 - **per-peer**: one isolated Session per user, shared across Channels
 - **per-channel-peer** (recommended): one isolated Session per Channel + user combination, so the same user has separate conversations on different platforms
 
-### Lane Queue: Serial Guarantee
+### Steering Queue: Message Steering
 
-This is an easily overlooked but critical design: each Session has its own Lane Queue that enforces strictly serial message processing.
+This is an easily overlooked but critical design. When a message arrives while an Agent is already processing, OpenClaw doesn't wait for it to finish — it uses a **Steering Queue** to decide how to handle the incoming message.
 
-Why is this needed? Imagine you send three messages in rapid succession. If processed in parallel, the Agent might handle the first without knowing the second exists, leading to incoherent responses. The Lane Queue ensures messages are processed one by one in order — slightly slower perhaps, but guaranteeing consistency.
+OpenClaw provides six queue modes:
+
+- **steer** (default): injects the new message into the currently running Agent, so the model sees it at the next reasoning boundary
+- **queue**: legacy one-at-a-time injection
+- **steer-backlog**: injects into the current run while also saving a copy for a later followup turn
+- **followup**: doesn't disturb the current run; queues messages for later processing
+- **collect**: waits for the current run to finish, then coalesces multiple waiting messages into one followup turn
+- **interrupt**: aborts the active run and immediately processes the newest message
+
+The other side of this mechanism is serial guarantee: messages within the same Session are never processed in parallel, preventing race conditions when the Agent reads and writes files. Slightly slower, but for good reason — it buys you determinism and debuggability.
 
 ### Sub-agents: Background Workers
 
@@ -143,13 +152,13 @@ An elegant aspect of Memory is that it's human-auditable — you can open MEMORY
 
 SOUL.md is the core file defining an Agent's persona and behavioral philosophy. OpenClaw distinguishes "what to do" (AGENTS.md) from "who to be" (SOUL.md) — SOUL.md is injected into the system prompt at the start of every session, ensuring the Agent maintains a consistent communication style, values, and behavioral boundaries. It's written in plain Markdown, can be directly edited, and the community has even spawned open-source projects like ClawSouls for sharing and installing pre-configured personas.
 
-### Bindings: Routing Rules
+### Bindings: Multi-Agent Routing
 
-Bindings are deterministic routing rules that decide "which Agent handles messages under which conditions." They can match on:
+Bindings are deterministic mappings that route messages to different Agents. A binding is essentially a set of match conditions `(channel, accountId, peer, guild/team) → agentId`, telling the Gateway "which Agent should handle this message."
 
-- Channel type (e.g., Telegram messages go to Agent A)
-- User identity (e.g., VIP users get a dedicated Agent)
-- Guild or roles (e.g., tech group messages go to the tech Agent)
+Routing follows a **most-specific wins** principle: peer-level matches take precedence over channel-level matches, and specific rules override wildcards. For example, you can route a specific WhatsApp contact's messages to a dedicated Agent while all other WhatsApp messages go to a default Agent.
+
+Bindings are what make OpenClaw's multi-agent architecture possible — you can run multiple Agents like "work assistant" and "personal concierge" side by side, each with its own isolated workspace, SOUL.md, and session store.
 
 ## Summary
 
