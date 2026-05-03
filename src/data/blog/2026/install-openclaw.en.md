@@ -76,7 +76,13 @@ The catch: registration requires credit card verification, and Oracle occasional
 
 ### On Tencent Cloud / Alibaba Cloud
 
-Select the OpenClaw application image when purchasing. After boot, visit `http://<public-ip>:18789` — the admin panel is ready.
+Select the OpenClaw application image when purchasing. After boot, use SSH local forwarding to access the admin panel (don't expose port 18789 directly):
+
+```bash
+ssh -N -L 18789:127.0.0.1:18789 root@<public-ip>
+```
+
+Then open `http://localhost:18789` in your browser.
 
 ### Manual Install (Any Linux VPS)
 
@@ -93,9 +99,17 @@ Open these ports in your cloud firewall:
 
 | Port | Purpose |
 |------|---------|
-| 18789 | OpenClaw admin panel |
+| 18789 | OpenClaw admin panel (**security: don't expose publicly**, see below) |
 | 443 | HTTPS (webhook callbacks) |
 | 22 | SSH management |
+
+> **Security tip**: Port 18789 is the OpenClaw admin panel — exposing it to the public internet hands over full control of your agent. Use SSH local forwarding instead:
+>
+> ```bash
+> ssh -N -L 18789:127.0.0.1:18789 root@your-server-ip
+> ```
+>
+> Then open `http://localhost:18789` in your local browser. Everything goes through an encrypted SSH tunnel — no need to open port 18789 at all.
 
 ## Choosing a Model: This Matters More Than the Server
 
