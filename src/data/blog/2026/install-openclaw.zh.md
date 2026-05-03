@@ -245,7 +245,7 @@ OpenClaw 默认每 30 分钟自动执行一次心跳：Agent 醒来，读取 `HE
         apiKey: "sk-xxx",  // 从 platform.deepseek.com 获取
         api: "openai-completions",
         models: [
-          { id: "deepseek-chat", name: "DeepSeek V4 Flash" },
+          { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" },
         ],
       },
     },

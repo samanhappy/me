@@ -192,7 +192,7 @@ Heartbeat alone burns 1.68 million tokens per day — triple the "500K/day" esti
         isolatedSession: true,   // 🔑 Fresh session, no conversation history
         lightContext: true,       // 🔑 Only load HEARTBEAT.md
         activeHours: { start: "08:00", end: "23:00", timezone: "America/New_York" },
-        model: "deepseek/deepseek-chat-v4",  // Cheap model for heartbeat only
+        model: "deepseek/deepseek-v4-flash",  // Cheap model for heartbeat only
       },
     },
   },
@@ -234,7 +234,7 @@ Two routes: direct DeepSeek API, or via OpenRouter.
         apiKey: "sk-xxx",  // From platform.deepseek.com
         api: "openai-completions",
         models: [
-          { id: "deepseek-chat", name: "DeepSeek V4 Flash" },
+          { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" },
         ],
       },
     },
@@ -252,7 +252,7 @@ Two routes: direct DeepSeek API, or via OpenRouter.
         baseUrl: "https://openrouter.ai/api/v1",
         apiKey: "sk-or-v1-xxx",
         models: [
-          { id: "deepseek/deepseek-chat-v4", name: "DS V4 Flash" },
+          { id: "deepseek/deepseek-v4-flash", name: "DS V4 Flash" },
         ],
       },
     },
