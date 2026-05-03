@@ -68,6 +68,8 @@ The catch: registration requires credit card verification, and Oracle occasional
 | Hetzner CX22 | 2C4G | ~$48 | Hardware quality, no restrictions |
 | Oracle Free | 4C24G | $0 | Tech enthusiasts, zero budget |
 
+> Oracle's "always free" has a counterintuitive detail: people worry about instance reclamation, but Oracle primarily reclaims long-idle instances. OpenClaw itself generates steady load (heartbeat, cron jobs), making it less likely to be flagged as idle — register once, and long-term stability is better than you'd expect.
+
 > The rest of this guide uses Hetzner as an example. Other platforms follow the same pattern.
 
 ## Installing OpenClaw
@@ -142,6 +144,60 @@ Let's do the math. Moderate OpenClaw user — daily queries, code assistance, me
 DeepSeek V4 Flash costs **1/34th** of Claude Sonnet 4 and **1/25th** of GPT-4o.
 
 And that cached input pricing ($0.0028/million tokens) is practically free — when you reuse the same system prompts and context, most tokens hit the cache, driving costs even lower.
+
+You might notice Gemini 2.5 Flash ($0.15/$0.60) has nearly the same input price as DeepSeek. So why not Gemini? Two reasons: first, DeepSeek's output price is half of Gemini's ($0.28 vs $0.60) — and OpenClaw agents produce plenty of output. Second, cache pricing differs by 14x ($0.0028 vs $0.04) — OpenClaw reuses system prompts and skill definitions with every inference, so cache hit rates are high, and this gap widens significantly in practice.
+
+A quick note on GLM 4.5 Air (free). Can you use it? Sure. Reasoning ability and context window are limited — if you're just kicking the tires, start here at zero cost. But if you want your agent to actually solve real problems — research, code, make decisions — the free experience will have you reaching for an upgrade fast. DeepSeek V4 Flash is $2.64/month. Not worth suffering through a mediocre model to save two bucks.
+
+### Don't Forget the Token Black Hole: Heartbeat
+
+Your OpenClaw is running. Server costs are fixed, model costs are under control. But there's a hidden money pit — **Heartbeat**.
+
+OpenClaw runs a heartbeat every 30 minutes by default: the agent wakes up, reads `HEARTBEAT.md` to check for anything needing attention (email, calendar, system health), and replies `HEARTBEAT_OK` if all is clear before going back to sleep. Sounds thoughtful. But there's a fatal default — **heartbeats run in the main session, carrying full conversation history**.
+
+If you've been chatting for hundreds of turns, each heartbeat sends tens of thousands of history tokens to the model. Do the math:
+
+```
+Heartbeat frequency: every 30 min → 48 times/day
+Tokens per run: conversation history + system prompt ≈ 20,000–50,000 tokens
+Daily consumption: 48 × 35,000 ≈ 1,680,000 tokens
+With DeepSeek V4 Flash: 1.68M × $0.14 ≈ $0.24/day → $7/month
+```
+
+Heartbeat alone burns 1.68 million tokens per day — triple the "500K/day" estimate for a moderate user. Your actual API bill could be far higher than the $2.64/month you planned for.
+
+**The fix?** Three lines of config:
+
+```json5
+{
+  agents: {
+    defaults: {
+      heartbeat: {
+        every: "30m",
+        target: "last",
+        isolatedSession: true,   // 🔑 Fresh session, no conversation history
+        lightContext: true,       // 🔑 Only load HEARTBEAT.md
+        activeHours: { start: "08:00", end: "23:00", timezone: "America/New_York" },
+        model: "deepseek/deepseek-chat-v4",  // Cheap model for heartbeat only
+      },
+    },
+  },
+}
+```
+
+`isolatedSession: true` is the key — each heartbeat creates a fresh session without history. Combined with `lightContext: true` (loads only `HEARTBEAT.md`), per-heartbeat token consumption drops from ~35,000 to ~3,500 — that's a **10x reduction**.
+
+Optimized heartbeat cost:
+
+```
+Daily consumption: 48 × 3,500 ≈ 168,000 tokens
+Daily cost: 0.168M × $0.14 ≈ $0.023/day
+Monthly cost: $0.023 × 30 ≈ $0.70/month
+```
+
+From $7/month down to under $1/month. If you don't need background patrol, just set `every: "0m"` to disable heartbeat entirely and save that last dollar.
+
+For more on heartbeat — how it differs from Cron, how to write `HEARTBEAT.md`, and configuring task sub-intervals — see *[OpenClaw Heartbeat: Teaching Your AI to Patrol Autonomously](/blog/openclaw-heartbeat)*.
 
 ### Is It Capable Enough?
 
@@ -223,8 +279,9 @@ Total cost of running OpenClaw:
 | Item | Monthly Cost |
 |------|-------------|
 | Hetzner CX22 VPS | ~$4 |
-| DeepSeek V4 Flash API | ~$2.64 |
-| **Total** | **~$6.64/month** |
+| DeepSeek V4 Flash API (daily chat) | ~$2.64 |
+| Heartbeat monitoring (optimized) | ~$0.70 |
+| **Total** | **~$7.34/month** |
 
 That's less than a lunch delivery — for a 24/7 AI personal assistant.
 
