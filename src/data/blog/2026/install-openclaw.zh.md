@@ -2,9 +2,9 @@
 author: 青扬
 pubDatetime: 2026-05-02T19:00:00.000Z
 modDatetime: 2026-05-02T19:00:00.000Z
-title: "2026 年，用性价比最高的方式拥有你的专属 OpenClaw"
+title: "用 DeepSeek V4 Flash 养 OpenClaw：2026 年性价比最高的方案"
 featured: false
-draft: true
+draft: false
 tags:
   - OpenClaw
   - DeepSeek
@@ -201,7 +201,7 @@ OpenClaw 默认每 30 分钟自动执行一次心跳：Agent 醒来，读取 `HE
         isolatedSession: true,   // 🔑 独立 Session，不加载对话历史
         lightContext: true,       // 🔑 只加载 HEARTBEAT.md
         activeHours: { start: "08:00", end: "23:00", timezone: "Asia/Shanghai" },
-        model: "deepseek/deepseek-chat-v4",  // 用便宜模型专门跑心跳
+        model: "deepseek/deepseek-v4-flash",  // 用便宜模型专门跑心跳
       },
     },
   },
@@ -263,7 +263,7 @@ OpenClaw 默认每 30 分钟自动执行一次心跳：Agent 醒来，读取 `HE
         baseUrl: "https://openrouter.ai/api/v1",
         apiKey: "sk-or-v1-xxx",
         models: [
-          { id: "deepseek/deepseek-chat-v4", name: "DS V4 Flash" },
+          { id: "deepseek/deepseek-v4-flash", name: "DS V4 Flash" },
         ],
       },
     },

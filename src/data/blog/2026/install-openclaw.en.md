@@ -4,7 +4,7 @@ pubDatetime: 2026-05-02T19:00:00.000Z
 modDatetime: 2026-05-02T19:00:00.000Z
 title: "Run OpenClaw on DeepSeek V4 Flash: The Most Cost-Effective Setup in 2026"
 featured: false
-draft: true
+draft: false
 tags:
   - OpenClaw
   - DeepSeek
