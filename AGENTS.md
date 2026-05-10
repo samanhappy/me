@@ -83,3 +83,12 @@ This project follows the [Conventional Commits](https.conventionalcommits.org) s
 ### Content Creation
 
 Blog posts are written in Markdown and located in the `src/data/blog` directory. Each post should have a corresponding file for each supported language (e.g., `my-post.en.md` and `my-post.zh.md`).
+
+### Writing Style
+
+When generating or editing blog post content in this project, strictly adhere to the following stylistic guidelines (inspired by Tw93's writing style):
+- **Conversational & Practical (接地气):** Avoid didactic, overly formal, or "AI-like" transitional phrases. Write as if you are directly sharing hands-on experience face-to-face with a peer.
+- **No System-level Jargon Bloat (少端着):** Explain technical concepts simply. Avoid heavy architectural buzzwords when simple, practical engineering terms work better.
+- **TL;DR First (太长不读):** Start articles with a brief, punchy summary of the core decisions and takeaways.
+- **Focus on Pitfalls & Habits (防坑与实战):** Use practical section titles like "The First Hurdle" (第一道坎) and "Real-World Habits" (用熟之后的几条避坑习惯) instead of generic academic headers.
+- **Direct Voice:** Keep sentences short, concise, and straight to the point. Focus on *how* to solve the problem and *why* a specific boundary/decision matters.
