@@ -12,585 +12,109 @@ tags:
   - WeChat
   - Deployment
   - Multi-User
-description: "Set up one OpenClaw Gateway for multiple users, with separate Agents, shared skills, and clear routing boundaries across multiple Feishu or WeChat accounts."
+description: "Setting up one OpenClaw Gateway for multiple shared agents with specific routing bounds across Feishu or WeChat domains."
 ---
 
-## You Don't Need Ten Docker Containers
+## TL;DR
 
-The typical first-time OpenClaw setup: install a Gateway, configure one Agent, connect WhatsApp or Telegram, and enjoy your personal AI assistant.
+A lot of people ask me if they need to spin up multiple Docker containers or VMs just to share an OpenClaw instance with their team, or to hook up two different Feishu/WeChat accounts. The short answer is: you really don't. 
 
-Then the questions start. "Can my partner use it too?" "Can my team share an assistant?" "Can I have a work personality and a personal personality on the same number?"
+If you are setting this up for your family, a trusted team, or multiple accounts for your own business, one Gateway is plenty. But if you are building a SaaS for external, mutually distrusting customers, save yourself the headache and split them into separate machines.
 
-The first instinct is usually to add another machine, another container, or another Gateway. That works, but most of the time you are not there yet.
+This post is essentially about getting the boundaries right: how to isolate context, route messages accurately, and share skills without stepping on each other's toes.
 
-OpenClaw already supports multiple isolated Agents on one Gateway. Skills can be shared. Configuration can be reused. Messages can be routed by channel, account, contact, and group. The real work is not wiring it up. The real work is deciding where the boundary should sit. This article covers both: how to build it, and when not to keep sharing the same runtime.
+## The First Hurdle: Over-Isolating Your Setup
 
-## Start with the Trust Boundary
+When first starting out with OpenClaw, most people fire up a single Gateway, connect an Agent to Telegram, and call it a day. The moment someone else wants access, or they want a "work bot" and a "life bot", their instinct is to clone the whole setup.
 
-The official security docs make one assumption very clear: OpenClaw follows a personal-assistant trust model.
+But within a single trust boundary, this just adds unnecessary bloat.
 
-In plain terms, that means one trusted boundary. That can be one person, or one team that trusts each other. It is not a strong multi-tenant boundary for adversarial users.
+OpenClaw is built on a "Personal Assistant Trust Model." It wasn't designed to be a hardcore multi-tenant SaaS out of the box. By throwing multiple identities into a single `openclaw.json`, you get to manage your logs centrally and share loaded skills. It’s actually much easier to maintain.
 
-So before you write any config, check the scenario.
+## Step 1: Give Everyone Their Own Brain
 
-### When one Gateway is a good fit
-
-- one family or one team using it together
-- users share the same business context
-- centralized operations and logs are acceptable
-- the goal is collaboration, not tenant isolation
-
-### When one Gateway is the wrong fit
-
-- different customers need hard separation
-- users do not fully trust each other
-- personal and company identities would mix in one runtime
-- the system will be exposed as a service to external users
-
-In those cases, the better answer is not more config. It is more boundaries: separate Gateways, and often separate OS users, containers, or hosts as well.
-
-## Single Agent vs. Multi-Agent
-
-In OpenClaw, an Agent is a complete "brain":
-
-- **Workspace**: stores AGENTS.md / SOUL.md / USER.md and other definition files
-- **State Directory** (`agentDir`): auth profiles, model registry, per-agent config
-- **Session Store**: chat history and routing state
-
-By default, OpenClaw runs in single-agent mode, so every message goes to `agentId: "main"`. Multi-user deployment starts by splitting that brain into several ones, then telling the Gateway which message belongs to which brain.
-
-Once you look a bit closer, the model is really four layers:
-
-1. **Gateway**: receives messages and owns the state
-2. **Agent**: an isolated brain with its own workspace, sessions, and auth profiles
-3. **Channel Account**: one concrete account on one messaging platform
-4. **Bindings**: routing rules that map a channel, account, contact, or group to one Agent
-
-That is why one OpenClaw instance can host multiple Feishu bots or multiple WeChat accounts without turning into chaos, as long as you split the routing clearly from the start.
-
-## Step 1: Create an Agent for Each User
-
-Use the CLI wizard to create new agents:
+By default, all traffic hits `agentId: "main"`. To run multiple agents, you first need to split their workspaces. A couple of CLI commands handles this:
 
 ```bash
 openclaw agents add oliver
 openclaw agents add nina
 ```
 
-This creates independent workspaces and state directories:
+This creates separate, physical folders under `~/.openclaw` (like `workspace-oliver` and `workspace-nina`), along with their respective auth, session, and model directories.
 
-```
-~/.openclaw/
-├── workspace/         # main agent (default)
-├── workspace-oliver/  # Oliver's workspace
-├── workspace-nina/    # Nina's workspace
-└── agents/
-    ├── main/agent/
-  ├── oliver/agent/
-  └── nina/agent/
-```
+### Baking Vibes into SOUL and USER
 
-### Give Each User Their Own Context
+Once created, jump into their respective workspaces and jot down a quick `SOUL.md` and `USER.md`. 
 
-Each Agent has its own SOUL.md. You can define completely different personas:
+Oliver is a backend dev. He wants an AI that talks straight and helps review code. His `SOUL.md` might say: "Prioritize TDD for code questions. Keep responses short. No fluff."
+Nina handles daily operations. Her `SOUL.md` might say: "Parse schedules from Feishu docs and format them into tables."
 
-**Oliver's SOUL.md** (tech-oriented assistant):
-```markdown
-You are Claw, Oliver's technical partner. You know he maintains internal tools,
-automation scripts, and a few side projects. He prefers TDD, refactoring, and code
-that stays maintainable. Keep replies concise and direct. If he's clearly shipping late at night,
-remind him to wrap up.
-```
+This kind of cold-start warmup ensures each Agent has its persona dialed in the moment it comes online.
 
-**Nina's SOUL.md** (life-oriented assistant):
-```markdown
-You are Nina's daily assistant. Help with shopping lists, travel planning,
-and calendar reminders. Use a warm, steady tone, like a reliable friend.
-She does not care about technical details, so keep things simple.
-```
+## Step 2: Routing That Actually Works
 
-### Record User Preferences in USER.md
+Now the Gateway has multiple "brains," but it has no idea whose messages belong to whom. We need to wire up some `bindings`.
 
-Beyond SOUL.md, include a `USER.md` in each Agent's workspace with user-specific information:
-
-```markdown
-# Oliver
-- Works in backend development and also maintains a few internal systems
-- Prefers concise replies
-- Tech stack: Java, TypeScript, Python
-- Uses the assistant for work during the day and personal projects at night
-- Dietary preferences: dislikes cilantro
-```
-
-OpenClaw loads `USER.md` at session start, so the Agent does not need to re-learn the user every time.
-
-## Step 2: Route Messages with Bindings
-
-Once the Agents exist, the Gateway still needs a dispatch table. That is what `bindings` are for.
-
-Each rule answers one question: for this channel, this account, this contact, or this group, which Agent should receive the message?
-
-### Route by DM Contact
-
-If you have one WhatsApp number but want different contacts to reach different agents:
-
-```json5
-// ~/.openclaw/openclaw.json
-{
-  agents: {
-    list: [
-      { id: "oliver", workspace: "~/.openclaw/workspace-oliver" },
-      { id: "nina", workspace: "~/.openclaw/workspace-nina" },
-    ],
-  },
-  bindings: [
-    {
-      agentId: "oliver",
-      match: { channel: "whatsapp", peer: { kind: "direct", id: "+4912345678901" } },
-    },
-    {
-      agentId: "nina",
-      match: { channel: "whatsapp", peer: { kind: "direct", id: "+4912345678902" } },
-    },
-  ],
-}
-```
-
-Peer-level matches take precedence over channel-level matches. If you configure both an exact contact and a channel-wide wildcard, the exact contact wins.
-
-### Route by Channel
-
-An even simpler approach: different platforms → different agents:
+### Precision Routing by Sender
+Want different numbers from the same WhatsApp account to hit different Agents? Just hardcode the `peer` (sender). It always takes precedence over the global channel rules:
 
 ```json5
 bindings: [
-  { agentId: "work", match: { channel: "slack" } },
-  { agentId: "life", match: { channel: "whatsapp" } },
+  { agentId: "oliver", match: { channel: "whatsapp", peer: { kind: "direct", id: "+491..." } } },
+  { agentId: "nina", match: { channel: "whatsapp", peer: { kind: "direct", id: "+492..." } } }
 ]
 ```
 
-All Slack messages go to the work Agent; all WhatsApp messages go to the personal Agent.
-
-### Multiple Accounts, Multiple Numbers
-
-If you have two WhatsApp accounts (work and personal), distinguish them with `accountId`:
+### The Multi-Account Matrix
+Often, the most practical use case involves multiple Feishu bots—one for internal knowledge, one for external support. You can target the `accountId` directly:
 
 ```json5
+channels: {
+  feishu: {
+    accounts: {
+      intern: { appId: "cli_1", appSecret: "***", name: "Internal" },
+      support: { appId: "cli_2", appSecret: "***", name: "Support" }
+    }
+  }
+},
 bindings: [
-  {
-    agentId: "work",
-    match: { channel: "whatsapp", accountId: "work" },
-  },
-  {
-    agentId: "life",
-    match: { channel: "whatsapp", accountId: "personal" },
-  },
+  { agentId: "internal", match: { channel: "feishu", accountId: "intern" } },
+  { agentId: "support", match: { channel: "feishu", accountId: "support" } }
 ]
 ```
 
-This is where multi-user deployment starts turning into multi-entry deployment. You are no longer just splitting people. You are splitting accounts as well.
+WeChat is similar, even if it runs through the external `@tencent-weixin/openclaw-weixin` plugin. Scan twice, land two distinct `accountId`s, and map them to their respective bindings.
 
-## Step 3: Bring Multi-Account Routing into the Picture
+## Step 3: The Crucial Anti-Bleed Switch
 
-The original multi-user article mostly answers one question: one Gateway, multiple Agents, then what? Once you add multiple Feishu or WeChat accounts, the focus shifts to a second question: how do you keep account boundaries clean?
+**The easiest way to ruin a multi-user setup isn't a crash loop—it's User A accidentally seeing User B's chat history.**
 
-### Feishu: the cleaner path
-
-OpenClaw’s Feishu docs already define a clear multi-account model:
+This happens when you forget session isolation. Whenever multiple people share a backbone, make sure this exact line is in your config:
 
 ```json5
-{
-  channels: {
-    feishu: {
-      defaultAccount: "main",
-      accounts: {
-        main: {
-          appId: "cli_xxx",
-          appSecret: "xxx",
-          name: "Internal Bot",
-        },
-        support: {
-          appId: "cli_yyy",
-          appSecret: "yyy",
-          name: "Support Bot",
-        },
-      },
-    },
-  },
+session: {
+  dmScope: "per-account-channel-peer"
 }
 ```
 
-Once multiple accounts exist, the natural next step is not to push all of them into one Agent. It is to route them deliberately:
+It looks minor, but it acts as a hard lock. It shreds chat states strictly by account, channel, and contact, guaranteeing no one's context gets stitched together by accident.
 
-```json5
-{
-  bindings: [
-    {
-      agentId: "internal",
-      match: { channel: "feishu", accountId: "main" },
-    },
-    {
-      agentId: "support",
-      match: { channel: "feishu", accountId: "support" },
-    },
-  ],
-}
-```
+## Step 4: Share Skills, Keep Quirks
 
-Feishu is comfortable here because the account model and the routing model are both well defined.
+The biggest perk of sharing a server? You only install dependencies once. 
 
-### WeChat: supported, but think in plugins
+Drop a weather or github skill into the global `~/.openclaw/skills/` directory, and everyone has access by default. But often, different roles need different constraints.
 
-WeChat is different. Today it comes through the external plugin `@tencent-weixin/openclaw-weixin`, not as a fully built-in runtime inside the core repository.
+1. **Allowlisting**: If you don't want your ops bot running shell commands, explicitly define `skills: ["weather", "shopping"]` inside the config list. 
+2. **Local Overrides**: If Oliver wants a tricked-out version of a GitHub review tool, he can write a same-named version inside `workspace-oliver/skills/github`. The framework prioritizes the local config automatically without breaking it for anyone else.
 
-That changes the operating model:
+## A Few Real-World Habits to Adopt
 
-- plugin versions need attention of their own
-- compatibility with the host OpenClaw version should be checked explicitly
-- incidents should be triaged as “core” versus “plugin,” not just “OpenClaw broke”
+- **Sandbox Your Group Bots**: If your Agent gets dropped into group chats—trusted or not—max out its sandbox constraints. Group chats invite weird command injections; don't let a stray message run a destructive script on your host.
+  ```json5
+  sandbox: { mode: "all", scope: "agent" }
+  ```
+- **Dry-Run Before Opening the Gates**: Set your `allowFrom` list to just your own number first. Only after you’ve verified the connection and are 100% sure context isn't bleeding, should you remove the hard limit for real traffic.
+- **Watch Out for Tool Dependencies**: If you decide `exec` is too dangerous and block (deny) it globally, remember that any loaded Skill secretly relying on bash commands will quietly break too.
 
-The multi-account flow is also simpler and more mechanical: sign in once per account. The Gateway can then monitor several WeChat login states at runtime, but session isolation has to match that setup.
-
-## Step 4: Session Isolation — Keep Conversations from Bleeding Together
-
-The most common multi-user mistake is not Agent creation. It is session isolation. OpenClaw controls DM isolation through `dmScope`:
-
-```json5
-{
-  session: {
-    dmScope: "per-channel-peer",
-  },
-}
-```
-
-| dmScope | Behavior | Best For |
-|---------|----------|----------|
-| `main` | All DMs share one session (default) | Single user |
-| `per-peer` | One session per user, shared across channels | Single person on multiple platforms |
-| `per-channel-peer` | One session per channel + user combination | **Multi-user deployment (recommended)** |
-
-If one person is using several channels, `per-peer` can be enough. Once multiple people are involved, I would treat `per-channel-peer` as the minimum.
-
-If the same Gateway also hosts multiple Feishu accounts or multiple WeChat accounts, move straight to this:
-
-```json5
-{
-  session: {
-    dmScope: "per-account-channel-peer",
-  },
-}
-```
-
-That one line is doing real work. It splits session state by account, channel, and sender, which keeps two different WeChat accounts and two different contacts from landing in the same context bucket.
-
-### Session Lifecycle
-
-Whether single-user or multi-user, session lifecycle works the same way:
-
-```json5
-{
-  session: {
-    reset: {
-      mode: "daily",      // Reset at 4:00 AM daily
-      idleMinutes: 120,    // Auto-reset after 2 hours idle
-    },
-  },
-}
-```
-
-A session reset clears conversation history, but persistent memory in MEMORY.md stays intact.
-
-## Step 5: Skill Sharing — One Shared Pool Is Usually Enough
-
-One of the biggest advantages of multi-agent deployment is shared skills. No need to install the same skill repeatedly across agents.
-
-### Skill Precedence Hierarchy
-
-OpenClaw loads skills with the following precedence (highest to lowest):
-
-| Priority | Source | Path | Visibility |
-|----------|--------|------|------------|
-| 1 | Workspace skills | `<workspace>/skills` | That agent only |
-| 2 | Project-agent skills | `<workspace>/.agents/skills` | That agent only |
-| 3 | Personal-agent skills | `~/.agents/skills` | All agents on this machine |
-| 4 | Managed/local skills | `~/.openclaw/skills` | All agents on this machine |
-| 5 | Bundled skills | Shipped with install | All agents on this machine |
-| 6 | Extra dirs | `skills.load.extraDirs` | All agents on this machine |
-
-### In Practice: Share + Override
-
-Put common skills in `~/.openclaw/skills` — all agents can use them:
-
-```bash
-# Install shared skills globally
-openclaw skills install weather    # → ~/.openclaw/skills/weather/
-openclaw skills install github     # → ~/.openclaw/skills/github/
-```
-
-If an agent needs a customized version of a shared skill, just place a same-named one in its own workspace — workspace priority beats global:
-
-```bash
-# Nina doesn't need PR review — give her a simplified version
-mkdir -p ~/.openclaw/workspace-nina/skills/github
-# Write simplified SKILL.md → auto-overrides global version
-```
-
-### Agent Skill Allowlists
-
-Not every agent needs every skill. Use allowlists for precise control:
-
-```json5
-{
-  agents: {
-    defaults: {
-      skills: ["weather"],  // Default skills for all agents
-    },
-    list: [
-      {
-        id: "oliver",
-        workspace: "~/.openclaw/workspace-oliver",
-        skills: ["weather", "github", "coding-agent"],  // Oliver's extra skills
-      },
-      {
-        id: "nina",
-        workspace: "~/.openclaw/workspace-nina",
-        skills: ["weather", "shopping"],  // Nina doesn't need github
-      },
-    ],
-  },
-}
-```
-
-This still applies when you introduce multiple accounts. The internal Feishu bot, the support Feishu bot, and the work WeChat account can share the same base skill pool. When one Agent needs a custom variant, override the skill in that Agent’s workspace and leave the rest alone.
-
-## Step 6: Security Isolation — Different Surfaces, Different Permissions
-
-If you're exposing an Agent to less-trusted users (like strangers in a group chat), security isolation becomes critical.
-
-### Per-agent Sandbox
-
-Run high-risk agents inside Docker sandboxes to constrain filesystem and network access:
-
-```json5
-{
-  agents: {
-    list: [
-      {
-        id: "family",
-        workspace: "~/.openclaw/workspace-family",
-        sandbox: {
-          mode: "all",      // Always sandboxed
-          scope: "agent",   // One container per agent
-          docker: {
-            setupCommand: "apt-get update && apt-get install -y git curl",
-          },
-        },
-      },
-    ],
-  },
-}
-```
-
-### Tool Allowlists and Denylists
-
-Further restrict which tools specific agents can use:
-
-```json5
-{
-  agents: {
-    list: [
-      {
-        id: "family",
-        workspace: "~/.openclaw/workspace-family",
-        tools: {
-          allow: ["read", "exec", "sessions_list", "sessions_history"],
-          deny: ["write", "edit", "apply_patch", "browser", "cron"],
-        },
-      },
-    ],
-  },
-}
-```
-
-> Note: `tools.allow/deny` controls tools (bash, browser, write, etc.), not skills. If a skill needs to call a blocked tool, that capability simply won't work.
-
-### Mention Gate for Group Chats
-
-When placing an Agent in a group, require mentions to trigger it — preventing the Agent from reading every message:
-
-```json5
-{
-  agent: {
-    groupChat: {
-      mentionPatterns: ["@familybot", "@assistant"],
-    },
-  },
-}
-```
-
-## Complete Configuration Example
-
-Here is a more realistic team-shaped configuration that combines multi-user and multi-account routing:
-
-```json5
-// ~/.openclaw/openclaw.json
-{
-  // Global defaults
-  agents: {
-    defaults: {
-      workspace: "~/.openclaw/workspace",
-      model: "anthropic/claude-sonnet-4-6",
-      skills: ["weather"],
-    },
-    list: [
-      {
-        id: "internal",
-        name: "Internal Assistant",
-        workspace: "~/.openclaw/workspace-internal",
-        skills: ["weather", "github", "coding-agent"],
-        tools: {
-          deny: ["exec", "browser", "gateway", "cron"],
-        },
-      },
-      {
-        id: "support",
-        name: "Support Assistant",
-        workspace: "~/.openclaw/workspace-support",
-        skills: ["weather", "shopping"],
-        sandbox: { mode: "all", scope: "agent" },
-        tools: {
-          allow: ["read", "sessions_list", "sessions_history"],
-          deny: ["write", "edit", "apply_patch", "exec", "browser", "gateway", "cron"],
-        },
-      },
-      {
-        id: "sales",
-        name: "Sales Assistant",
-        workspace: "~/.openclaw/workspace-sales",
-        sandbox: { mode: "all", scope: "agent" },
-      },
-    ],
-  },
-
-  channels: {
-    feishu: {
-      defaultAccount: "main",
-      dmPolicy: "pairing",
-      requireMention: true,
-      accounts: {
-        main: {
-          appId: "cli_main",
-          appSecret: "secret_main",
-          name: "Internal Bot",
-        },
-        support: {
-          appId: "cli_support",
-          appSecret: "secret_support",
-          name: "Support Bot",
-        },
-      },
-    },
-  },
-
-  // Message routing
-  bindings: [
-    {
-      agentId: "internal",
-      match: { channel: "feishu", accountId: "main" },
-    },
-    {
-      agentId: "support",
-      match: { channel: "feishu", accountId: "support" },
-    },
-    {
-      agentId: "sales",
-      match: { channel: "openclaw-weixin", accountId: "biz" },
-    },
-  ],
-
-  // Session isolation
-  session: {
-    dmScope: "per-account-channel-peer",
-    reset: {
-      mode: "daily",
-      idleMinutes: 120,
-    },
-  },
-}
-```
-
-## Common Deployment Patterns
-
-### Pattern 1: Family Sharing
-
-A home Mac mini as Gateway. Each family member gets their own Agent, all behind one WhatsApp number. The Gateway routes by sender phone number. Skills are shared. Personal coding tools stay private.
-
-### Pattern 2: Team Collaboration
-
-A shared Gateway server for the team. Each member has their own Agent and workspace. Slack, Feishu, or similar channels route DMs to the right Agent. Shared skills live in `~/.openclaw/skills`; project-specific ones stay in each workspace.
-
-If the team also runs two Feishu bots, one for internal knowledge and one for support, keep the split at the `accountId` layer instead of spinning up another Gateway too early.
-
-### Pattern 3: Multi-Account Entry Points
-
-One Gateway hosts two Feishu accounts and two WeChat accounts. Internal traffic routes to `internal`; external traffic goes to `sales` or `support`. From the outside it looks like four separate bots. Underneath it is one control plane.
-
-### Pattern 4: One Person, Multiple Personas
-
-Same person, different platforms, different Agent personalities. Telegram gets the "deep work Agent" running Claude Opus; WhatsApp gets the "daily assistant" on Sonnet. Skills are shared, but persona and model are independent.
-
-```json5
-bindings: [
-  { agentId: "deep-work", match: { channel: "telegram" } },
-  { agentId: "daily", match: { channel: "whatsapp" } },
-]
-```
-
-## When to Split into Multiple Gateways
-
-If the question is “can one Gateway be shared,” the answer is yes. If the question is “when should I stop sharing it,” the line is not hard to find.
-
-I would split into multiple Gateways when:
-
-- users no longer sit inside the same trust boundary
-- different customers need strict separation
-- logs, sessions, and credentials should not live in one runtime
-- the system is being offered as a service to external users
-- you are already worried that one Agent may be getting the wrong tools or authority
-
-The downside is more operational overhead. The upside is cleaner boundaries, a smaller blast radius, and simpler incident handling.
-
-## Important Notes
-
-### ⚠️ Never Share agentDir
-
-Each Agent's `agentDir` (`~/.openclaw/agents/<agentId>/agent`) must be independent. It stores auth profiles and model registries — sharing them causes auth conflicts and session corruption.
-
-### ⚠️ Configure Session Isolation Before Going Live
-
-Before opening up to multiple users, verify `dmScope` is set to `per-channel-peer`. The default `main` mode merges everyone's conversations — fine for single-user, disastrous for multi-user.
-
-### ✅ Verify Routing with `openclaw agents list --bindings`
-
-```bash
-openclaw agents list --bindings
-```
-
-This command shows all agents and their bindings — confirm your routing is correct before inviting others.
-
-### ✅ Test Privately First
-
-Start with only your own contacts in `allowFrom`. Test for a few days. Confirm isolation works and skills behave as expected before adding more numbers or accounts.
-
-## Summary
-
-The core of multi-user OpenClaw deployment is not “run more instances.” It is keeping four layers clean:
-
-1. **Independent Agents** = independent brains (workspace, SOUL.md, session store)
-2. **Channel Accounts** = separate entry points inside the same channel
-3. **Bindings** = message dispatch rules (whose message goes to which brain)
-4. **Layered Skills** = shared pool (`~/.openclaw/skills`) + per-agent overrides (`<workspace>/skills`)
-
-If your setup stays inside one trust boundary, one Gateway can serve a family or a team, and it can host multiple Feishu or WeChat accounts without much trouble.
-
-Once the trust boundary breaks, stop forcing it. Split the Gateway. In practice, that is often the simpler choice, not the more complex one.
+At the end of the day, it's rarely about making the infrastructure insanely complex. It’s about leaning into how the system was meant to be configured. Get these bounds right, and the initial setup friction will quickly turn into muscle memory.
