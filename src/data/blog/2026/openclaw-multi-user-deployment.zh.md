@@ -69,8 +69,74 @@ bindings: [
 
 对接其他渠道（如 Telegram）改 `channel` 和对应 ID 即可，逻辑完全一致。
 
+### 微信接入指南：从零搭一条微信通道
+
+上面的路由示例假设微信通道已经就绪。但 OpenClaw 的微信通道并非内置在核心仓库中，而是通过腾讯官方的外部插件 `@tencent-weixin/openclaw-weixin` 来实现的。完整接入分四步：
+
+**① 安装插件**
+
+```bash
+# 快速安装
+npx -y @tencent-weixin/openclaw-weixin-cli install
+
+# 或通过 OpenClaw 插件系统安装
+openclaw plugins install "@tencent-weixin/openclaw-weixin"
+```
+
+安装完成后，启用插件并重启 Gateway：
+
+```bash
+openclaw config set plugins.entries.openclaw-weixin.enabled true
+openclaw gateway restart
+```
+
+插件安装后，Gateway 会自动发现其清单（manifest）、加载入口，并将 `openclaw-weixin` 注册为可用渠道。
+
+**② 扫码登录**
+
+在运行 Gateway 的同一台机器上执行扫码命令：
+
+```bash
+openclaw channels login --channel openclaw-weixin
+```
+
+终端会弹出二维码，用手机微信扫描并确认登录。插件在扫码成功后会将账号凭证（token）保存在本地的 OpenClaw 状态目录下，之后无需重复登录。
+
+**③ 挂多个微信账号**
+
+如果要在一台机器上同时挂两个微信账号（比如个人号 + 工作号），只需再执行一次登录命令即可：
+
+```bash
+openclaw channels login --channel openclaw-weixin
+```
+
+第二次扫码后，两个账号的凭证会分开存储。务必将 Session 隔离策略设置为：
+
+```bash
+openclaw config set session.dmScope per-account-channel-peer
+```
+
+这确保不同微信账号的私聊上下文按账号、渠道和发送方三个维度彻底隔离，互不相干。
+
+**④ 访问控制：审批新联系人**
+
+微信渠道的私聊消息采用与 OpenClaw 其他渠道一致的配对（Pairing）与白名单模型。首次收到陌生人的消息时，不会被自动处理。你需要先查看待审批的发送方列表：
+
+```bash
+openclaw pairing list openclaw-weixin
+```
+
+确认无误后，执行审批：
+
+```bash
+openclaw pairing approve openclaw-weixin <sender_id>
+```
+
+审批通过后，该联系人即可与对应的 Agent 正常对话。当有多个微信账号时，审批是针对具体账号的，不会出现 A 账号的审批误开放给 B 账号的情况。
+
 ### 挂多个账号的矩阵
-很多人最实用的场景其实是飞书矩阵：一个做公司内部知识库，一个做对外支持。直接拿下 `accountId`：
+
+很多团队最实用的场景其实是飞书矩阵：一个做公司内部知识库，一个做对外支持。直接拿下 `accountId`：
 
 ```json5
 channels: {
@@ -87,7 +153,7 @@ bindings: [
 ]
 ```
 
-微信这边套个 `@tencent-weixin/openclaw-weixin` 的插件也是一样的道理，扫两次码，落成不同的 `accountId`，然后进不同的绑定。
+微信这边完成了上述插件安装和多账号登录后，同样通过不同的 `accountId` 进入不同的绑定，实现与飞书矩阵完全对等的多账号调度。
 
 ## 第三步：防串线的关键开关
 
