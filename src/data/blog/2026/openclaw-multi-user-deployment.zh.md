@@ -2,9 +2,9 @@
 author: 青扬
 pubDatetime: 2026-05-02T18:09:00.000Z
 modDatetime: 2026-05-10T12:30:00.000Z
-title: "OpenClaw 多用户部署实战：隔离、偏好与技能复用"
+title: "一台 Gateway，多个人设：OpenClaw 多人共用完整指南"
 featured: false
-draft: true
+draft: false
 tags:
   - OpenClaw
   - AI Agent
@@ -12,7 +12,7 @@ tags:
   - WeChat
   - Deployment
   - Multi-User
-description: "同一台 Gateway 实例如何实现多 Agent 隔离、个性化偏好、共享技能池，并处理多飞书/微信账号路由边界。"
+description: "一台 Gateway 就能撑起多个 Agent 的人格。本文讲解隔离上下文、精准路由和技能共享，附飞书/微信多账号实战，让你告别重复部署。"
 ---
 
 ## 太长不读
