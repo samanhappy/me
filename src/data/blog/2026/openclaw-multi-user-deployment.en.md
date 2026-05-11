@@ -1,7 +1,7 @@
 ---
 author: samanhappy
 pubDatetime: 2026-05-02T18:09:00.000Z
-modDatetime: 2026-05-10T12:30:00.000Z
+modDatetime: 2026-05-11T10:00:00.000Z
 title: "One Gateway, Multiple Personas: A Complete Guide to OpenClaw Multi-User Deployment"
 featured: false
 draft: false
@@ -42,7 +42,13 @@ openclaw agents add zhou
 openclaw agents add lin
 ```
 
-This physically splits the brains under `~/.openclaw`, creating `workspace-zhou` and `workspace-lin`, along with their respective auth, session, and model directories.
+This physically splits the brains under `~/.openclaw`, creating `workspace-zhou` and `workspace-lin`, along with their respective auth config directories (`~/.openclaw/agents/<agentId>/agent/`) and session stores (`~/.openclaw/agents/<agentId>/sessions/`). Verify the result:
+
+```bash
+openclaw agents list --bindings
+```
+
+Both Agents are now ready, but haven't been bound to any channel yet — let's set up message routing next.
 
 ### Embedding Personalization into SOUL and USER
 
@@ -57,8 +63,43 @@ This kind of cold-start priming ensures each Agent comes online already knowing 
 
 The Gateway now has multiple "brains," but it doesn’t know whose message goes where. We need a `bindings` section to route them.
 
+### Routing Priority
+
+OpenClaw routing follows a most-specific-wins rule, from highest to lowest priority:
+
+1. **peer** (sender ID — routes to a specific contact)
+2. **accountId** (a specific channel account)
+3. Channel-wide wildcard (`accountId: "*"` — matches all accounts on that channel)
+4. Default Agent (final fallback)
+
+### Binding by Channel Account (Prefer the CLI)
+
+For account-level routing, use CLI commands rather than editing JSON by hand:
+
+```bash
+# Bind zhou to a specific Telegram account
+openclaw agents bind --agent zhou --bind telegram:ops
+
+# Bind lin to another account
+openclaw agents bind --agent lin --bind telegram:lin-account
+
+# Verify the bindings
+openclaw agents list --bindings
+```
+
+The `--bind` format is `<channel>` or `<channel:accountId>`. If you omit `accountId`, OpenClaw resolves it from channel defaults. You can upgrade a binding to a specific account later by running `bind` again — OpenClaw upgrades it in place rather than creating a duplicate.
+
+Removing bindings is equally simple:
+
+```bash
+openclaw agents unbind --agent zhou --bind telegram:ops
+# Or remove all bindings for an agent
+openclaw agents unbind --agent zhou --all
+```
+
 ### Person-Level Routing
-Within the same WeChat or Telegram account, want different contacts to trigger different Agents? Hard-code the `peer` (sender). Its priority always trumps global wildcards. Example for WeChat:
+
+Within the same account, want different contacts to trigger different Agents? Hard-code the `peer` (sender ID) in config — its priority always trumps account-level and channel-wide rules. Example for WeChat:
 
 ```json5
 bindings: [
@@ -67,7 +108,7 @@ bindings: [
 ]
 ```
 
-For other channels like Telegram, just swap `channel` and the corresponding ID — the logic is identical.
+> Peer-level matches currently require `openclaw.json` config — the `agents bind` CLI does not yet support writing peer-scoped bindings. For other channels like Telegram, just swap `channel` and the corresponding ID; the logic is identical.
 
 ### WeChat Setup Guide: Building a WeChat Channel from Scratch
 
@@ -136,38 +177,51 @@ Once approved, the contact can chat normally with the designated Agent. With mul
 
 ### Multi-Account Matrix
 
-For many teams, the most practical scenario is a Feishu matrix: one account for internal knowledge base, another for external support. Just use `accountId`:
+For many teams, the most practical scenario is a Feishu matrix: one account for internal knowledge base, another for external support.
+
+**Step 1 — Create the Agents:**
+
+```bash
+openclaw agents add internal --workspace ~/.openclaw/workspace-internal
+openclaw agents add support --workspace ~/.openclaw/workspace-support
+```
+
+**Step 2 — Add the Feishu account credentials to `openclaw.json`** (channel account credentials still need to be maintained in the config file):
 
 ```json5
 channels: {
   feishu: {
     accounts: {
-      intern: { appId: "cli_1", appSecret: "***", name: "Internal Assistant" },
-      support: { appId: "cli_2", appSecret: "***", name: "External Support" }
+      intern: { appId: "cli_xxx", appSecret: "***", name: "Internal Assistant" },
+      support: { appId: "cli_yyy", appSecret: "***", name: "External Support" }
     }
   }
-},
-bindings: [
-  { agentId: "internal", match: { channel: "feishu", accountId: "intern" } },
-  { agentId: "support", match: { channel: "feishu", accountId: "support" } }
-]
+}
 ```
 
-After completing the WeChat plugin installation and multi-account login described above, you can similarly route by different `accountId` into different bindings, achieving a multi-account dispatch parity with the Feishu matrix.
+**Step 3 — Bind the routing via CLI:**
+
+```bash
+openclaw agents bind --agent internal --bind feishu:intern
+openclaw agents bind --agent support --bind feishu:support
+
+# Verify the result
+openclaw agents list --bindings
+```
+
+After completing the WeChat plugin installation and multi-account login described above, you can similarly bind with `openclaw agents bind --agent <agentId> --bind openclaw-weixin:<accountId>`, achieving full multi-account dispatch parity with the Feishu matrix.
 
 ## Step 3: The Critical Switch to Prevent Context Leakage
 
 **The most common multi-user pitfall isn’t a startup error; it’s Zhang San seeing Li Si’s conversation context.**
 
-This typically happens when Session isolation isn’t configured. As long as everyone shares the same bus, always remember to set this in your config:
+This typically happens when Session isolation isn't configured. As long as everyone shares the same bus, always run this command:
 
-```json5
-session: {
-  dmScope: "per-account-channel-peer"
-}
+```bash
+openclaw config set session.dmScope per-account-channel-peer
 ```
 
-This unassuming line acts as a lock, strictly shredding chat state by account, channel, and peer, preventing different users’ histories from being stitched together.
+This unassuming line acts as a lock, strictly shredding chat state by account, channel, and peer, preventing different users' histories from being stitched together. The equivalent JSON form is `"session": { "dmScope": "per-account-channel-peer" }` — both approaches have identical effect.
 
 ## Step 4: Sharing Skills While Preserving Individuality
 
@@ -175,18 +229,21 @@ Here’s the biggest benefit of sharing a single server: you don’t have to ins
 
 Install a weather or GitHub Skill into the global directory `~/.openclaw/skills`, and by default everyone can use it. But different roles often require different degrees of action granularity.
 
-1. **Allowlist Control**: If you don’t want operations folks running dangerous shell commands, hard-code `skills: ["weather", "shopping"]` in their `list`.
+1. **Allowlist Control**: If you don't want operations folks running dangerous shell commands, hard-code `["weather", "shopping"]` in `agents.list[].skills`. For a shared baseline across all Agents, use `agents.defaults.skills`.
 2. **Local Override**: If Zhou wants to customize a GitHub review tool, he just drops a same-name config under his own `workspace-zhou/skills/github`. The framework automatically prefers the nearest configuration, without affecting others.
 
 > Quick reminder: Even inside a trust domain, restrict permissions by role. Imagine the global skill pool contains a script that directly hits the production database. If Lin’s Agent is inadvertently guided to run it, the problem goes beyond simple “context leakage.” Uphold the principle of least privilege — the longer you run, the more you’ll appreciate it.
 
 ## Hard-Won Best Practices
 
-- **Weigh Sandboxing in Groups Carefully**: Whenever your Agent joins a group — even a trusted one — raise the sandbox restrictions. Bizarre instructions fly everywhere in group chats. The strictest approach is:
+- **Weigh Sandboxing in Groups Carefully**: Whenever your Agent joins a group — even a trusted one — raise the sandbox restrictions. Bizarre instructions fly everywhere in group chats. Sandbox settings can be **configured per Agent** — apply strict restrictions to external-facing Agents while keeping internal ones more permissive:
   ```json5
-  sandbox: { mode: "all", scope: "agent" }
+  // External support Agent (strict)
+  { id: "support", sandbox: { mode: "all", scope: "agent" }, tools: { deny: ["exec", "write"] } }
+  // Internal assistant Agent (normal tool access)
+  { id: "internal", sandbox: { mode: "off" } }
   ```
-  But this shuts down **nearly all tool invocations**, leaving only plain-text chat. If your Agent needs to check weather or search docs in a group, combine skill allowlists with permissive but limited actions rather than killing all sandboxing outright.
+  Setting `mode: "all"` globally **shuts down nearly all tool invocations**, leaving only plain-text chat. If your Agent needs to check weather or search docs in a group, combine skill allowlists with `tools.allow` to grant precise access rather than killing all sandboxing outright.
 
 - **Run Dry Tests Before Opening Up**: Initially restrict `allowFrom` to only your own contact. Once connectivity tests pass and you’re sure no context bleeds across users, then remove the hard limits.
 

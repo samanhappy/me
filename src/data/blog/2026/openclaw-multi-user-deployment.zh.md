@@ -1,7 +1,7 @@
 ---
 author: 青扬
 pubDatetime: 2026-05-02T18:09:00.000Z
-modDatetime: 2026-05-10T12:30:00.000Z
+modDatetime: 2026-05-11T10:00:00.000Z
 title: "一台 Gateway，多个人设：OpenClaw 多人共用完整指南"
 featured: false
 draft: false
@@ -44,7 +44,13 @@ openclaw agents add zhou
 openclaw agents add lin
 ```
 
-这会在 `~/.openclaw` 下把脑子物理切开，分别多出 `workspace-zhou` 和 `workspace-lin`，以及配套的 auth、session 和模型目录。
+这会在 `~/.openclaw` 下把脑子物理切开，分别多出 `workspace-zhou` 和 `workspace-lin`，以及各自独立的 auth 配置（`~/.openclaw/agents/<agentId>/agent/`）和 session 记录（`~/.openclaw/agents/<agentId>/sessions/`）。创建完先确认一下：
+
+```bash
+openclaw agents list --bindings
+```
+
+此时两个 Agent 已就位，但还没有绑定任何渠道，接下来配消息路由。
 
 ### 把个性化体现在 SOUL 和 USER 里
 
@@ -59,8 +65,43 @@ openclaw agents add lin
 
 Gateway 此时虽然有了多个 Agent，但它不知道谁发的消息该给谁。我们需要配一段 `bindings` 做路由。
 
+### 路由的优先级
+
+OpenClaw 路由采用"最精确优先"原则，优先级从高到低：
+
+1. **peer**（发送方 ID，精确到具体联系人）
+2. **accountId**（具体渠道账号）
+3. 渠道级通配（`accountId: "*"`，匹配该渠道所有账号）
+4. 默认 Agent（最终兜底）
+
+### 按渠道账号绑定（推荐用命令行）
+
+对于以渠道账号为单位的路由，优先用 CLI 操作，不用手动改 JSON：
+
+```bash
+# 给 zhou 绑定 Telegram ops 账号
+openclaw agents bind --agent zhou --bind telegram:ops
+
+# 给 lin 绑定另一个账号
+openclaw agents bind --agent lin --bind telegram:lin-account
+
+# 验证绑定结果
+openclaw agents list --bindings
+```
+
+`--bind` 格式是 `<channel>` 或 `<channel:accountId>`。省略 `accountId` 时，OpenClaw 从渠道默认账号解析；如果之后想指定具体账号，再跑一次 bind 命令即可原地升级绑定，不会产生重复条目。
+
+解绑同样一行命令搞定：
+
+```bash
+openclaw agents unbind --agent zhou --bind telegram:ops
+# 或解绑该 Agent 下所有绑定
+openclaw agents unbind --agent zhou --all
+```
+
 ### 精准到人的路由
-同一个微信或 Telegram 账号里，想让不同联系人调不同 Agent？把 `peer`（发送方）写死就行，它的优先级永远高于全局通配。以微信为例：
+
+同一个账号里，想让不同联系人调不同 Agent？把 `peer`（发送方 ID）写进配置即可，它的优先级永远高于账号级和渠道级通配。以微信为例：
 
 ```json5
 bindings: [
@@ -69,7 +110,7 @@ bindings: [
 ]
 ```
 
-对接其他渠道（如 Telegram）改 `channel` 和对应 ID 即可，逻辑完全一致。
+> peer 级匹配目前只能在 `openclaw.json` 里配置，`agents bind` 命令行暂不支持写入。对接 Telegram 等其他渠道时改 `channel` 和对应 ID 即可，逻辑完全一致。
 
 ### 微信接入指南：从零搭一条微信通道
 
@@ -138,38 +179,51 @@ openclaw pairing approve openclaw-weixin <sender_id>
 
 ### 挂多个账号的矩阵
 
-很多团队最实用的场景其实是飞书矩阵：一个做公司内部知识库，一个做对外支持。直接拿下 `accountId`：
+很多团队最实用的场景其实是飞书矩阵：一个做公司内部知识库，一个做对外支持。
+
+**第一步，建 Agent：**
+
+```bash
+openclaw agents add internal --workspace ~/.openclaw/workspace-internal
+openclaw agents add support --workspace ~/.openclaw/workspace-support
+```
+
+**第二步，在 `openclaw.json` 里配好飞书账号凭证**（渠道账号信息目前仍需在配置文件维护）：
 
 ```json5
 channels: {
   feishu: {
     accounts: {
-      intern: { appId: "cli_1", appSecret: "***", name: "内部助手" },
-      support: { appId: "cli_2", appSecret: "***", name: "外部客服" }
+      intern: { appId: "cli_xxx", appSecret: "***", name: "内部助手" },
+      support: { appId: "cli_yyy", appSecret: "***", name: "外部客服" }
     }
   }
-},
-bindings: [
-  { agentId: "internal", match: { channel: "feishu", accountId: "intern" } },
-  { agentId: "support", match: { channel: "feishu", accountId: "support" } }
-]
+}
 ```
 
-微信这边完成了上述插件安装和多账号登录后，同样通过不同的 `accountId` 进入不同的绑定，实现与飞书矩阵完全对等的多账号调度。
+**第三步，用命令行绑定路由：**
+
+```bash
+openclaw agents bind --agent internal --bind feishu:intern
+openclaw agents bind --agent support --bind feishu:support
+
+# 确认绑定结果
+openclaw agents list --bindings
+```
+
+微信这边完成了上述插件安装和多账号登录后，同样通过 `openclaw agents bind --agent <agentId> --bind openclaw-weixin:<accountId>` 绑定，实现与飞书矩阵完全对等的多账号调度。
 
 ## 第三步：防串线的关键开关
 
 **多用户最容易翻车的地方，不是启动报错，而是张三看到了李四的对话上下文。** 
 
-这通常是因为没配 Session 隔离。只要大家在共用一条总线，一定要记得在配置里挂上这句：
+这通常是因为没配 Session 隔离。只要大家在共用一条总线，一定要执行这一句命令：
 
-```json5
-session: {
-  dmScope: "per-account-channel-peer"
-}
+```bash
+openclaw config set session.dmScope per-account-channel-peer
 ```
 
-这句话看着不起眼，但它相当于一把锁，严格按账号、渠道、联系人把聊天状态切碎，避免不同人的历史记录被缝合到一起。
+这句话看着不起眼，但它相当于一把锁，严格按账号、渠道、联系人把聊天状态切碎，避免不同人的历史记录被缝合到一起。等效的 JSON 写法是 `"session": { "dmScope": "per-account-channel-peer" }`，两种方式效果完全相同。
 
 ## 第四步：共享技能，但保留个性
 
@@ -177,18 +231,21 @@ session: {
 
 你装个查天气的或者查 GitHub 的 Skill，丢在全局目录 `~/.openclaw/skills` 下，默认所有人都能调用。但很多时候，不同角色需要的动作颗粒度不同。
 
-1. **白名单控制**：不想让运营用到危险的 shell 命令，就在 `list` 里写死 `skills: ["weather", "shopping"]`。
+1. **白名单控制**：不想让运营用到危险的 shell 命令，就在 `agents.list[].skills` 里写死 `["weather", "shopping"]`；想给所有 Agent 设共同基线，用 `agents.defaults.skills`。
 2. **局部覆盖**：如果周舟想要自己魔改一个 GitHub 审查工具，直接在自己的 `workspace-zhou/skills/github` 里手搓一份同名配置。框架会自动优先用离自己近的，不影响别人。
 
 > 小提醒：即使在信任域内，也应按角色限制权限。假设全局技能库里有个能直连线上数据库的脚本，而林宁的 Agent 不小心被引导执行，那就不只是“串线”的问题了。守住最小权限，用得越久越踏实。
 
 ## 用熟之后的几条避坑习惯
 
-- **群组里开沙箱要权衡**：只要你的 Agent 会进群，不管是不是熟人群，都建议把沙箱约束拉高。群聊里各种奇怪的指令防不胜防。最严格的做法是：
+- **群组里开沙箱要权衡**：只要你的 Agent 会进群，不管是不是熟人群，都建议把沙箱约束拉高。群聊里各种奇怪的指令防不胜防。沙箱可以**按 Agent 单独配置**，对外部 Agent 加严、对内部 Agent 放宽：
   ```json5
-  sandbox: { mode: "all", scope: "agent" }
+  // 外部客服 Agent（严格限制）
+  { id: "support", sandbox: { mode: "all", scope: "agent" }, tools: { deny: ["exec", "write"] } }
+  // 内部助手 Agent（正常使用工具）
+  { id: "internal", sandbox: { mode: "off" } }
   ```
-  但这会**关闭几乎所有工具调用**，只保留纯文本对话。如果你的 Agent 需要在群里查天气、搜文档，可以改成结合技能白名单和限定允许动作，而不是一刀切关停所有沙箱。
+  全开 `mode: "all"` 会**关闭几乎所有工具调用**，只保留纯文本对话。如果 Agent 需要在群里查天气、搜文档，结合技能白名单和 `tools.allow` 精确放行，而不是一刀切关停。
 
 - **先跑干测试再开放**：先在 `allowFrom` 里只放自己的联系方式，连通测试通过、确信串不进别人上下文之后，再去把硬限制端掉。
 
