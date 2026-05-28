@@ -84,11 +84,30 @@ This project follows the [Conventional Commits](https.conventionalcommits.org) s
 
 Blog posts are written in Markdown and located in the `src/data/blog` directory. Each post should have a corresponding file for each supported language (e.g., `my-post.en.md` and `my-post.zh.md`).
 
-### Writing Style
+### 博客写作指南
 
-When generating or editing blog post content in this project, strictly adhere to the following stylistic guidelines (inspired by Tw93's writing style):
-- **Conversational & Practical (接地气):** Avoid didactic, overly formal, or "AI-like" transitional phrases. Write as if you are directly sharing hands-on experience face-to-face with a peer.
-- **No System-level Jargon Bloat (少端着):** Explain technical concepts simply. Avoid heavy architectural buzzwords when simple, practical engineering terms work better.
-- **TL;DR First (太长不读):** Start articles with a brief, punchy summary of the core decisions and takeaways.
-- **Focus on Pitfalls & Habits (防坑与实战):** Use practical section titles like "The First Hurdle" (第一道坎) and "Real-World Habits" (用熟之后的几条避坑习惯) instead of generic academic headers.
-- **Direct Voice:** Keep sentences short, concise, and straight to the point. Focus on *how* to solve the problem and *why* a specific boundary/decision matters.
+#### 语气
+
+口语化，有个人观点，像一个有经验的开发者在分享心得。不要居高临下的说教，也不要干巴巴的功能列表。偶尔可以带点锋芒敢于下判断，但整体基调是分享。
+
+#### 结构
+
+采用"痛点引入 → 核心拆解 → 设计亮点 → 可带走的模式 → 实操引导"的结构：
+
+1. **痛点引入** — 先建立共鸣，让读者意识到自己也有这个问题
+2. **核心拆解** — 选 3-4 个最有代表性的点深入分析，不要贪多求全
+3. **设计亮点** — 分析"为什么这么做"，不只是"做了什么"
+4. **可带走的模式** — 给读者可以直接用在自己实践中的具体模式
+5. **实操引导** — 降低行动门槛，告诉读者怎么开始
+
+#### 读者假设
+
+目标读者是已经在使用 AI 编程工具（Claude Code、Cursor 等）的开发者。可以假设他们熟悉基本概念，不需要基础科普。重点放在理念和方法论上，而非工具安装和入门教程。
+
+#### 内容策略
+
+深度分析型，重理念提炼而非功能罗列。读者要的是"认知升级"，不是"使用手册"。每个技术点都要回答"为什么"和"我们能学到什么"，而不只是"是什么"和"怎么用"。
+
+#### 技术细节处理
+
+代码命令、工具名称、项目名保留英文原名（如 `/grill-me`、`Claude Code`），不翻译。在分析段落中用中文描述其功能即可。
